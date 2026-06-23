@@ -1,0 +1,15 @@
+node_modules/
+.wrangler/
+.dev.vars
+wrangler.jsonc
+*.local.json
+*.local.jsonc
+*.log
+*.zip
+secrets/
+dist/
+release/
+*.pem
+*.key
+*.env
+!*.env.example

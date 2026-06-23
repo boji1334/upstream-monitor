@@ -1,0 +1,98 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" fill="#0B1110"/>
+  <rect x="44" y="42" width="1192" height="636" rx="28" fill="#101A18" stroke="#27443C"/>
+  <rect x="44" y="42" width="1192" height="64" rx="28" fill="#12211E"/>
+  <circle cx="78" cy="74" r="9" fill="#34D399"/>
+  <text x="98" y="82" fill="#E9F4F0" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">上游倍率监控</text>
+  <rect x="294" y="58" width="100" height="34" rx="10" fill="#0D1715" stroke="#28483F"/>
+  <text x="315" y="81" fill="#D6E8E1" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">8</text>
+  <text x="338" y="80" fill="#8EA79F" font-family="Segoe UI, Arial, sans-serif" font-size="13">上游</text>
+  <rect x="406" y="58" width="116" height="34" rx="10" fill="#0D1715" stroke="#28483F"/>
+  <text x="428" y="81" fill="#D6E8E1" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">50</text>
+  <text x="462" y="80" fill="#8EA79F" font-family="Segoe UI, Arial, sans-serif" font-size="13">分组</text>
+  <rect x="1050" y="56" width="122" height="38" rx="12" fill="#34D399"/>
+  <text x="1085" y="80" fill="#04140E" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="800">刷新全部</text>
+
+  <rect x="74" y="136" width="248" height="500" rx="18" fill="#0F1716" stroke="#223C35"/>
+  <text x="98" y="172" fill="#E9F4F0" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">上游余额</text>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="96" y="204" width="204" height="62" rx="14" fill="#11241F" stroke="#2DD4BF"/>
+    <text x="116" y="231" fill="#E9F4F0" font-size="17" font-weight="700">sub.example</text>
+    <text x="116" y="252" fill="#8EA79F" font-size="13">api.example.com</text>
+    <rect x="218" y="219" width="62" height="24" rx="12" fill="#153E35"/>
+    <text x="231" y="236" fill="#34D399" font-size="13" font-weight="700">$36.01</text>
+
+    <rect x="96" y="282" width="204" height="62" rx="14" fill="#0C1513" stroke="#203832"/>
+    <text x="116" y="309" fill="#E9F4F0" font-size="17" font-weight="700">alpha</text>
+    <text x="116" y="330" fill="#8EA79F" font-size="13">alpha.example</text>
+    <rect x="218" y="297" width="62" height="24" rx="12" fill="#3A1F22"/>
+    <text x="235" y="314" fill="#F87171" font-size="13" font-weight="700">$0.42</text>
+
+    <rect x="96" y="360" width="204" height="62" rx="14" fill="#0C1513" stroke="#203832"/>
+    <text x="116" y="387" fill="#E9F4F0" font-size="17" font-weight="700">beta</text>
+    <text x="116" y="408" fill="#8EA79F" font-size="13">beta.example</text>
+    <rect x="218" y="375" width="62" height="24" rx="12" fill="#3D3116"/>
+    <text x="239" y="392" fill="#F4B740" font-size="13" font-weight="700">$2.80</text>
+  </g>
+
+  <rect x="350" y="136" width="574" height="500" rx="18" fill="#0F1716" stroke="#223C35"/>
+  <rect x="376" y="164" width="522" height="44" rx="13" fill="#0C1513" stroke="#28483F"/>
+  <text x="398" y="192" fill="#8EA79F" font-family="Segoe UI, Arial, sans-serif" font-size="14">当前上游：</text>
+  <text x="474" y="192" fill="#2DD4BF" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700">sub.example.com</text>
+  <rect x="612" y="174" width="78" height="22" rx="11" fill="#153E35"/>
+  <text x="628" y="190" fill="#34D399" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">余额 $36.01</text>
+
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="392" y="252" fill="#8EA79F" font-size="13" font-weight="700">选择</text>
+    <text x="494" y="252" fill="#8EA79F" font-size="13" font-weight="700">分组</text>
+    <text x="694" y="252" fill="#8EA79F" font-size="13" font-weight="700">倍率</text>
+    <text x="766" y="252" fill="#8EA79F" font-size="13" font-weight="700">平台</text>
+
+    <rect x="376" y="278" width="522" height="72" fill="#111D1A"/>
+    <rect x="392" y="298" width="58" height="32" rx="8" fill="#12211E" stroke="#28483F"/>
+    <text x="409" y="319" fill="#E9F4F0" font-size="13" font-weight="700">选择</text>
+    <text x="494" y="307" fill="#E9F4F0" font-size="17" font-weight="700">Claude 满血分组</text>
+    <text x="494" y="329" fill="#728079" font-size="12">ID 31 · code 使用</text>
+    <text x="694" y="319" fill="#E9F4F0" font-size="16" font-weight="800">×0.7</text>
+    <rect x="766" y="298" width="86" height="28" rx="8" fill="#4A352A"/>
+    <text x="786" y="317" fill="#E8A07F" font-size="13" font-weight="800">Anthropic</text>
+
+    <rect x="376" y="350" width="522" height="72" fill="#0F1716"/>
+    <rect x="392" y="370" width="58" height="32" rx="8" fill="#12211E" stroke="#28483F"/>
+    <text x="409" y="391" fill="#E9F4F0" font-size="13" font-weight="700">选择</text>
+    <text x="494" y="379" fill="#E9F4F0" font-size="17" font-weight="700">OpenAI 稳定分组</text>
+    <text x="494" y="401" fill="#728079" font-size="12">ID 14 · normal</text>
+    <text x="694" y="391" fill="#E9F4F0" font-size="16" font-weight="800">×0.1</text>
+    <rect x="766" y="370" width="66" height="28" rx="8" fill="#123A31"/>
+    <text x="784" y="389" fill="#34D399" font-size="13" font-weight="800">OpenAI</text>
+
+    <rect x="376" y="422" width="522" height="72" fill="#171B1A"/>
+    <rect x="392" y="442" width="58" height="32" rx="8" fill="#12211E" stroke="#28483F"/>
+    <text x="409" y="463" fill="#E9F4F0" font-size="13" font-weight="700">取消</text>
+    <text x="494" y="451" fill="#FCA5A5" font-size="17" font-weight="700">已用特殊分组</text>
+    <text x="494" y="473" fill="#F87171" font-size="12">ID 22 · 已用标记</text>
+    <text x="694" y="463" fill="#FCA5A5" font-size="16" font-weight="800">×0.25</text>
+    <rect x="766" y="442" width="70" height="28" rx="8" fill="#22324A"/>
+    <text x="786" y="461" fill="#7CB0FB" font-size="13" font-weight="800">Gemini</text>
+  </g>
+
+  <rect x="952" y="136" width="254" height="500" rx="18" fill="#0F1716" stroke="#223C35"/>
+  <text x="978" y="174" fill="#E9F4F0" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">创建并导入</text>
+  <rect x="978" y="206" width="202" height="44" rx="10" fill="#0C1513" stroke="#28483F"/>
+  <text x="996" y="233" fill="#8EA79F" font-family="Segoe UI, Arial, sans-serif" font-size="13">platform</text>
+  <text x="1092" y="233" fill="#E8A07F" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="800">anthropic</text>
+  <rect x="978" y="268" width="202" height="44" rx="10" fill="#0C1513" stroke="#28483F"/>
+  <text x="996" y="295" fill="#8EA79F" font-family="Segoe UI, Arial, sans-serif" font-size="13">rate mode</text>
+  <text x="1092" y="295" fill="#E9F4F0" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">upstream</text>
+  <rect x="978" y="336" width="202" height="138" rx="12" fill="#0C1513" stroke="#28483F"/>
+  <text x="996" y="362" fill="#728079" font-family="Consolas, monospace" font-size="12">{</text>
+  <text x="1012" y="386" fill="#F87171" font-family="Consolas, monospace" font-size="12">"gpt-*"</text>
+  <text x="1064" y="386" fill="#728079" font-family="Consolas, monospace" font-size="12">: skipped</text>
+  <text x="1012" y="410" fill="#E8A07F" font-family="Consolas, monospace" font-size="12">"claude-*"</text>
+  <text x="1084" y="410" fill="#728079" font-family="Consolas, monospace" font-size="12">: kept</text>
+  <text x="996" y="448" fill="#728079" font-family="Consolas, monospace" font-size="12">}</text>
+  <rect x="978" y="506" width="202" height="46" rx="13" fill="#34D399"/>
+  <text x="1038" y="535" fill="#04140E" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">创建并导入</text>
+
+  <text x="86" y="668" fill="#728079" font-family="Segoe UI, Arial, sans-serif" font-size="14">Cloudflare Workers · KV · Sub2API · Token Sync Extension</text>
+</svg>

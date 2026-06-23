@@ -1,0 +1,22 @@
+{
+  "name": "upstream-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker dashboard for monitoring upstream Sub2API groups, rates, balances, key creation/import, and browser token sync.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/boji1334/upstream-monitor.git"
+  },
+  "homepage": "https://github.com/boji1334/upstream-monitor#readme",
+  "bugs": {
+    "url": "https://github.com/boji1334/upstream-monitor/issues"
+  },
+  "scripts": {
+    "check": "node --check worker/src/worker.js",
+    "dev": "wrangler dev --local --port 8788 --config worker/wrangler.jsonc",
+    "deploy": "wrangler deploy --config worker/wrangler.jsonc"
+  },
+  "devDependencies": {
+    "wrangler": "^4.96.0"
+  }
+}

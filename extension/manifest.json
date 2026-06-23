@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "\u4e0a\u6e38 Token \u81ea\u52a8\u540c\u6b65",
+  "version": "1.0.1",
+  "description": "\u9759\u9ed8\u8bfb\u53d6\u5df2\u6253\u5f00\u4e2d\u8f6c\u7ad9\u7684 auth_token\uff0c\u5e76\u540c\u6b65\u5230\u4f60\u7684\u4e0a\u6e38\u76d1\u63a7\u7ad9\uff1b\u624b\u52a8\u70b9\u51fb\u65f6\u624d\u4e34\u65f6\u540e\u53f0\u6253\u5f00\u4e2d\u8f6c\u7ad9\u3002",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://monitor.example.com/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://monitor.example.com/*"
+      ],
+      "js": [
+        "monitor-content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "\u540c\u6b65\u4e0a\u6e38 Token"
+  }
+}
