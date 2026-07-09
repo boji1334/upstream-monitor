@@ -63,9 +63,29 @@ const APP_HTML = String.raw`<!doctype html>
       border:1px solid var(--line-2);border-radius:var(--radius-sm);padding:9px 11px;width:100%;transition:.15s}
     input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(52,211,153,.14)}
     textarea{resize:vertical;font-family:var(--mono);font-size:12.5px;line-height:1.55}
-    label.field{display:block;margin-bottom:10px}
-    label.field>span{display:block;font-size:11.5px;color:var(--txt-dim);margin-bottom:5px;font-weight:600;letter-spacing:.02em}
+    .field,label.field{display:block;margin-bottom:10px}
+    .field>span,label.field>span{display:block;font-size:11.5px;color:var(--txt-dim);margin-bottom:5px;font-weight:600;letter-spacing:.02em}
     .field-hint{margin:-4px 0 10px;font-size:11.5px;color:var(--txt-faint);line-height:1.45}
+    .field>.help-title,label.field>.help-title{display:inline-flex;align-items:center;gap:6px;position:relative;width:auto;max-width:100%;cursor:help;white-space:normal;z-index:5}
+    .help-title .help-dot{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:999px;background:var(--line);border:1px solid var(--line-2);color:var(--acc-2);font-size:11px;font-weight:800;line-height:1;flex:0 0 auto}
+    .help-title:hover .help-dot,.help-title:focus-within .help-dot{border-color:var(--acc);background:rgba(52,211,153,.16);color:var(--acc)}
+    .help-title:hover,.help-title:focus-within{z-index:90}
+    .help-popover{display:none;position:absolute;left:0;top:calc(100% + 8px);width:min(306px,calc(100vw - 56px));padding:12px 12px 11px;border:1px solid var(--line-2);border-radius:12px;background:var(--panel);background:color-mix(in srgb,var(--panel) 94%,#000 6%);box-shadow:0 18px 44px -18px rgba(0,0,0,.82);z-index:80;color:var(--txt);font-size:12.5px;font-weight:500;line-height:1.55;letter-spacing:0;text-align:left;white-space:normal}
+    .help-popover::before{content:"";position:absolute;left:0;right:0;top:-9px;height:9px}
+    .help-title:hover .help-popover,.help-title:focus-within .help-popover{display:block}
+    .help-head{display:block;color:var(--txt);font-weight:780;margin-bottom:6px;font-size:13px}
+    .help-text{display:block;color:var(--txt-dim);font-weight:500;margin:5px 0;overflow-wrap:anywhere}
+    .help-path{display:block;margin:7px 0;padding:7px 8px;border-radius:9px;background:var(--bg-soft);border:1px solid var(--line);color:var(--acc-2);font-weight:700;overflow-wrap:anywhere}
+    .help-code-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin:8px 0 6px;padding:8px;border-radius:10px;background:var(--bg-soft);border:1px solid var(--line)}
+    .help-code-row code{font-family:var(--mono);font-size:11.5px;color:var(--txt);font-weight:650;white-space:normal;word-break:break-all;line-height:1.45}
+    .help-copy{appearance:none;border:1px solid var(--line-2);border-radius:8px;background:var(--panel-2);color:var(--acc-2);font:inherit;font-size:12px;font-weight:760;padding:5px 9px;cursor:pointer;white-space:nowrap}
+    .help-copy:hover{border-color:var(--acc);color:var(--acc)}
+    .help-copy.ok{border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.14);color:var(--good)}
+    .help-warn{display:block;margin-top:6px;color:var(--warn);font-weight:650}
+    .setting-toggle{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:2px 0 12px;border:1px solid var(--line);border-radius:11px;background:var(--bg-soft);cursor:pointer;user-select:none}
+    .setting-toggle input{width:auto;accent-color:var(--acc);flex:0 0 auto}
+    .setting-toggle strong{display:block;font-size:12.5px;color:var(--txt);font-weight:760}
+    .setting-toggle span{display:block;font-size:11.5px;color:var(--txt-dim);line-height:1.45;margin-top:2px}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 
@@ -80,6 +100,7 @@ const APP_HTML = String.raw`<!doctype html>
     .token-badge{display:inline-flex;align-items:center;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px}
     .token-badge.expired{background:rgba(248,113,113,.18);color:var(--danger)}
     .token-badge.warn{background:rgba(244,183,64,.18);color:var(--warn)}
+    .token-badge.info{background:rgba(96,165,250,.16);color:var(--info)}
     .platform-tag{display:inline-flex;font-size:11px;font-weight:650;padding:2px 9px;border-radius:7px;background:var(--line);color:var(--txt-dim);text-transform:capitalize}
     .platform-tag.openai{background:rgba(16,185,129,.16);color:#34d399}
     .platform-tag.anthropic{background:rgba(217,119,87,.18);color:#e8a07f}
@@ -289,8 +310,12 @@ const APP_HTML = String.raw`<!doctype html>
         <div class="card">
           <h2>添加上游</h2>
           <label class="field"><span>名称</span><input id="upstreamName" placeholder="可留空，自动用域名"></label>
+          <div class="field"><span class="help-title" tabindex="0">上游类型 <span class="help-dot">?</span><span class="help-popover" role="tooltip"><span class="help-head">这里选什么？</span><span class="help-text">选择目标上游系统的后台类型。</span><span class="help-text"><b>sub2api / compatible</b>：填写从 sub2api 页面 localStorage 取到的 auth_token。</span><span class="help-text"><b>NewAPI</b>：填写系统访问令牌，并额外填写 user_id。</span></span></span><select id="upstreamKind"><option value="sub2api" selected>sub2api / compatible</option><option value="newapi">NewAPI</option></select></div>
           <label class="field"><span>上游 URL</span><input id="upstreamUrl" placeholder="https://api.example.com"></label>
-          <label class="field"><span>auth_token</span><input id="upstreamToken" placeholder="从中转站 localStorage 获取"></label>
+          <div class="field"><span class="help-title" tabindex="0"><span id="upstreamTokenLabel">sub2api auth_token</span> <span class="help-dot">?</span><span id="upstreamTokenHelp" class="help-popover" role="tooltip"></span></span><input id="upstreamToken" placeholder="粘贴 sub2api auth_token"></div>
+          <div class="field" id="upstreamRefreshTokenField"><span class="help-title" tabindex="0">sub2api refresh_token（可选，自动续期） <span class="help-dot">?</span><span id="upstreamRefreshTokenHelp" class="help-popover" role="tooltip"></span></span><input id="upstreamRefreshToken" placeholder="粘贴 refresh_token；不填也能保存，但过期后需手动更新"></div>
+          <div class="field hidden" id="upstreamUserIdField"><span class="help-title" tabindex="0">NewAPI user_id <span class="help-dot">?</span><span id="upstreamUserIdHelp" class="help-popover" role="tooltip"></span></span><input id="upstreamUserId" placeholder="粘贴 NewAPI user_id（通常是数字）"></div>
+          <div id="upstreamTokenHint" class="field-hint">把鼠标移到字段标题旁的 ?，可查看中文说明；需要执行的 Console 命令可在提示里直接复制。</div>
           <button id="addUpstreamBtn" class="btn primary" style="width:100%;justify-content:center">保存上游</button>
         </div>
         <div class="card">
@@ -336,29 +361,30 @@ const APP_HTML = String.raw`<!doctype html>
           <div id="selectedInfo" class="selected-info"><div class="empty">请选择一个上游分组</div></div>
         </div>
         <div class="card">
-          <h2>创建参数 <span class="tag">创建 key 时使用</span></h2>
+          <h2>创建参数 <span class="tag">创建账号时使用</span></h2>
           <div class="row2">
-            <label class="field"><span>create_count</span><input id="setCreateCount" type="number" min="1"></label>
-            <label class="field"><span>priority</span><input id="setPriority" type="number"></label>
+            <label class="field"><span>创建数量</span><input id="setCreateCount" type="number" min="1"></label>
+            <label class="field"><span>优先级</span><input id="setPriority" type="number"></label>
           </div>
           <div class="row2">
-            <label class="field"><span>concurrency</span><input id="setConcurrency" type="number"></label>
-            <label class="field"><span>load_factor</span><input id="setLoadFactor" type="number"></label>
+            <label class="field"><span>并发数</span><input id="setConcurrency" type="number"></label>
+            <label class="field"><span>负载权重</span><input id="setLoadFactor" type="number"></label>
           </div>
           <div class="row2">
-            <label class="field"><span>platform</span><input id="setPlatform"></label>
-            <label class="field"><span>type</span><input id="setType"></label>
+            <label class="field"><span>账号平台</span><input id="setPlatform" placeholder="openai"></label>
+            <label class="field"><span>账号类型</span><input id="setType" placeholder="apikey"></label>
           </div>
-          <label class="field"><span>base_url（留空用上游 URL）</span><input id="setBaseUrl"></label>
+          <label class="field"><span>上游 Base URL（留空使用上游 URL）</span><input id="setBaseUrl"></label>
           <div class="row2">
-            <label class="field"><span>rate_multiplier_mode</span>
-              <select id="setRateMode"><option value="upstream">upstream（按上游倍率）</option><option value="manual">manual（手动）</option></select>
+            <label class="field"><span>倍率模式</span>
+              <select id="setRateMode"><option value="upstream">按上游倍率</option><option value="manual">手动倍率</option></select>
             </label>
-            <label class="field"><span>rate_multiplier（手动模式）</span><input id="setRateMultiplier" placeholder="手动模式生效"></label>
+            <label class="field"><span>手动倍率</span><input id="setRateMultiplier" placeholder="仅手动倍率模式生效"></label>
           </div>
-          <label class="field"><span>model_mapping</span><textarea id="setModelMapping" rows="5"></textarea></label>
+          <label class="setting-toggle"><input id="setOpenAIPassthrough" type="checkbox"><span><strong>自动透传（仅替换认证）</strong><span>默认开启。导入 OpenAI 账号时写入 sub2api 的 openai_passthrough，仅替换认证并保留计费、并发、审计等逻辑。</span></span></label>
+          <label class="field"><span>模型映射</span><textarea id="setModelMapping" rows="5"></textarea></label>
           <div id="modelMappingHint" class="field-hint">OpenAI 平台会按这里的模型映射导入。</div>
-          <label class="field"><span>notes</span><input id="setNotes" placeholder="备注"></label>
+          <label class="field"><span>备注</span><input id="setNotes" placeholder="备注"></label>
           <button id="saveDefaultsBtn" class="btn" style="width:100%;justify-content:center">保存参数</button>
         </div>
         <div class="card">
@@ -400,10 +426,42 @@ const APP_HTML = String.raw`<!doctype html>
     function escAttr(v){ return esc(v).replace(/\x60/g,"&#96;"); }
     function setValue(id,v){ var el=byId(id); if(el) el.value = v==null?"":v; }
 
+
+    var SUB2API_AUTH_TOKEN_CMD='console.log(localStorage.getItem("auth_token"))';
+    var SUB2API_REFRESH_TOKEN_CMD='console.log(localStorage.getItem("refresh_token"))';
+    var SUB2API_BOTH_TOKENS_CMD='console.log(JSON.stringify({auth_token: localStorage.getItem("auth_token"), refresh_token: localStorage.getItem("refresh_token"), token_expires_at: localStorage.getItem("token_expires_at")}, null, 2))';
+    var NEWAPI_USER_ID_CMD='JSON.parse(localStorage.getItem("user") || "{}").id';
+    function helpHead(text){ return '<span class="help-head">'+esc(text)+'</span>'; }
+    function helpText(text){ return '<span class="help-text">'+esc(text)+'</span>'; }
+    function helpPath(text){ return '<span class="help-path">'+esc(text)+'</span>'; }
+    function helpWarn(text){ return '<span class="help-warn">'+esc(text)+'</span>'; }
+    function helpCommandRow(cmd,label){ return '<span class="help-code-row"><code>'+esc(cmd)+'</code><button type="button" class="help-copy" data-copy-help="'+escAttr(cmd)+'">'+esc(label||"复制命令")+'</button></span>'; }
+    function setHelpHtml(id,html){ var el=byId(id); if(el) el.innerHTML=html; }
+    function copyPlainText(text){
+      if(navigator.clipboard&&window.isSecureContext) return navigator.clipboard.writeText(text);
+      return new Promise(function(resolve,reject){
+        try{
+          var ta=document.createElement("textarea"); ta.value=text; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.left="-9999px"; ta.style.top="0";
+          document.body.appendChild(ta); ta.focus(); ta.select(); var ok=document.execCommand("copy"); document.body.removeChild(ta); ok?resolve():reject(new Error("copy failed"));
+        }catch(e){ reject(e); }
+      });
+    }
+    function handleHelpCopyClick(e){
+      var btn=e.target.closest&&e.target.closest("[data-copy-help]"); if(!btn) return;
+      e.preventDefault(); e.stopPropagation();
+      var text=btn.getAttribute("data-copy-help")||""; var old=btn.textContent;
+      copyPlainText(text).then(function(){ btn.textContent="已复制"; btn.classList.add("ok"); addLog("复制","已复制 Console 命令"); }).catch(function(){ btn.textContent="复制失败"; addLog("复制","浏览器阻止复制，请手动选中命令复制"); }).finally(function(){ setTimeout(function(){ btn.textContent=old; btn.classList.remove("ok"); },1400); });
+    }
+
     function dashboardUrl(value){
       try{ var u=new URL(value); u.pathname="/dashboard"; u.search=""; u.hash=""; return u.toString().replace(/\/$/,""); }
       catch(e){ return value; }
     }
+    function consoleUrl(value){
+      try{ var u=new URL(value); u.pathname="/console"; u.search=""; u.hash=""; return u.toString().replace(/\/$/,""); }
+      catch(e){ return value; }
+    }
+    function upstreamDashboardUrl(u){ return upstreamKind(u)==="newapi"?consoleUrl(u&&u.url):dashboardUrl(u&&u.url); }
     function displayHost(value){ try{ return new URL(value).host; }catch(e){ return value; } }
     function formatTime(iso){ if(!iso) return "-"; var d=new Date(iso); if(isNaN(d.getTime())) return "-"; return d.toLocaleString("zh-CN",{hour12:false}); }
     function shortTime(iso){ if(!iso) return ""; var d=new Date(iso); if(isNaN(d.getTime())) return ""; return d.toLocaleTimeString("zh-CN",{hour12:false}); }
@@ -463,6 +521,9 @@ const APP_HTML = String.raw`<!doctype html>
     function statusBadge(s){ var raw=s||"-"; var k=raw==="active"?"good":raw==="inactive"?"warn":""; return '<span class="badge '+k+'">'+esc(raw)+'</span>'; }
     function platformKind(p){ var n=String(p||"-").toLowerCase().replace(/[^a-z0-9]+/g,""); var known=["openai","anthropic","gemini","antigravity","azure","xai"]; return known.indexOf(n)!==-1?n:"other"; }
     function platformBadge(p){ var raw=String(p||"-").trim()||"-"; return '<span class="platform-tag '+platformKind(raw)+'">'+esc(raw)+'</span>'; }
+    function upstreamKind(u){ var k=String((u&&u.kind)||"sub2api").toLowerCase(); return k==="newapi"?"newapi":"sub2api"; }
+    function upstreamKindName(u){ return upstreamKind(u)==="newapi"?"NewAPI":"sub2api"; }
+    function upstreamKindBadge(u){ return '<span class="badge info" title="upstream type">'+upstreamKindName(u)+'</span>'; }
     function rateComparable(v){ var raw=String(v==null?"":v).replace(/[×x]/gi,"").trim(); var n=Number(raw); return Number.isFinite(n)?String(n):raw; }
     function rateNumber(v){ var raw=String(v==null?"":v).replace(/[×x]/gi,"").trim(); var n=Number(raw); return Number.isFinite(n)?n:Number.POSITIVE_INFINITY; }
     function rateHtml(g){
@@ -477,17 +538,28 @@ const APP_HTML = String.raw`<!doctype html>
       if(!b) return '<span class="balance-chip muted">'+(compact?"-":"余额 -")+'</span>';
       if(b.error) return '<span class="balance-chip error" title="'+escAttr(b.error)+'">'+(compact?"!":"余额失败")+'</span>';
       var n=Number(b.balance); if(!Number.isFinite(n)) return '<span class="balance-chip muted">'+(compact?"-":"余额 -")+'</span>';
-      return '<span class="balance-chip '+balanceLevel(n)+'" title="最近刷新：'+escAttr(formatTime(b.refreshedAt))+'">'+(compact?"":"余额 ")+esc(formatMoney(n))+'</span>';
+      var tip='最近刷新：'+formatTime(b.refreshedAt);
+      if(b.balanceUnit==="quota"&&Number.isFinite(Number(b.rawBalance))) tip+=' · NewAPI 原始 quota：'+b.rawBalance+' / '+(b.quotaPerUnit||500000);
+      return '<span class="balance-chip '+balanceLevel(n)+'" title="'+escAttr(tip)+'">'+(compact?"":"余额 ")+esc(formatMoney(n))+'</span>';
     }
+    function canAutoRenewToken(u){ return upstreamKind(u)==="sub2api" && !!(u&&u.refreshTokenSaved); }
     function tokenExpiryBadge(u){
-      var iso=u&&u.tokenExpiresAt; if(!iso) return ""; var t=new Date(iso).getTime(); if(Number.isNaN(t)) return "";
+      var iso=u&&u.tokenExpiresAt; if(!iso) return canAutoRenewToken(u)?'<span class="token-badge info" title="已保存 refresh_token，auth_token 过期时会自动续期">自动续期</span>':"";
+      var t=new Date(iso).getTime(); if(Number.isNaN(t)) return canAutoRenewToken(u)?'<span class="token-badge info" title="已保存 refresh_token，auth_token 过期时会自动续期">自动续期</span>':"";
       var now=Date.now();
-      if(t<=now) return '<span class="token-badge expired" title="auth_token 已过期：'+escAttr(formatTime(iso))+'">已过期</span>';
+      if(t<=now){
+        if(canAutoRenewToken(u)) return '<span class="token-badge info" title="auth_token 已过期，刷新时会用 refresh_token 自动续期">待续期</span>';
+        return '<span class="token-badge expired" title="auth_token 已过期：'+escAttr(formatTime(iso))+'">已过期</span>';
+      }
       var days=Math.floor((t-now)/86400000);
-      if(days<=3) return '<span class="token-badge warn" title="将于 '+escAttr(formatTime(iso))+' 过期">'+(days<=0?"今日到期":days+"天后过期")+'</span>';
-      return "";
+      if(days<=3){
+        if(canAutoRenewToken(u)) return '<span class="token-badge info" title="将在 '+escAttr(formatTime(iso))+' 过期，已保存 refresh_token，可自动续期">可续期</span>';
+        return '<span class="token-badge warn" title="将在 '+escAttr(formatTime(iso))+' 过期">'+(days<=0?"今日到期":days+"天后到期")+'</span>';
+      }
+      return canAutoRenewToken(u)?'<span class="token-badge info" title="已保存 refresh_token，auth_token 过期时会自动续期">自动续期</span>':"";
     }
     function isExpiringSoon(u){
+      if(canAutoRenewToken(u)) return false;
       var iso=u&&u.tokenExpiresAt; if(!iso) return false; var t=new Date(iso).getTime(); if(Number.isNaN(t)) return false;
       return t - Date.now() <= 3*86400000;
     }
@@ -553,7 +625,7 @@ const APP_HTML = String.raw`<!doctype html>
         var active=u.id===state.selectedUpstreamId?" active":""; var marked=u.mark?" marked":"";
         var count=u.snapshot&&u.snapshot.groups?u.snapshot.groups.length:0;
         var mark=u.mark?'<span class="tab-mark">'+esc(u.mark)+'</span>':"";
-        return '<button class="tab'+active+marked+'" data-tab="'+escAttr(u.id)+'"><span class="dot"></span><span class="tab-name">'+esc(u.name||u.url)+'</span>'+mark+tokenExpiryBadge(u)+balanceBadge(u.balance,true)+'<span class="badge">'+count+'</span></button>';
+        return '<button class="tab'+active+marked+'" data-tab="'+escAttr(u.id)+'"><span class="dot"></span><span class="tab-name">'+esc(u.name||u.url)+'</span>'+mark+upstreamKindBadge(u)+tokenExpiryBadge(u)+balanceBadge(u.balance,true)+'<span class="badge">'+count+'</span></button>';
       }).join("");
       host.querySelectorAll("[data-tab]").forEach(function(b){ b.addEventListener("click",function(){ state.selectedUpstreamId=b.getAttribute("data-tab"); state.selectedGroupId=""; renderAll(); }); });
     }
@@ -563,7 +635,7 @@ const APP_HTML = String.raw`<!doctype html>
       host.innerHTML=us.map(function(u){
         var active=u.id===state.selectedUpstreamId?" active":"";
         var mark=u.mark?'<span class="tab-mark">'+esc(u.mark)+'</span>':"";
-        return '<div class="balance-row'+active+'" role="button" tabindex="0" data-balance="'+escAttr(u.id)+'"><span class="balance-main"><span class="balance-title"><strong>'+esc(u.name||u.url)+'</strong>'+mark+tokenExpiryBadge(u)+'</span><span class="balance-meta"><a class="balance-url" href="'+escAttr(dashboardUrl(u.url))+'" target="_blank" rel="noopener noreferrer">'+esc(displayHost(u.url))+'</a></span></span><span class="balance-side">'+balanceBadge(u.balance,true)+'<span class="balance-time">'+esc(shortTime(u.balance&&u.balance.refreshedAt))+'</span></span></div>';
+        return '<div class="balance-row'+active+'" role="button" tabindex="0" data-balance="'+escAttr(u.id)+'"><span class="balance-main"><span class="balance-title"><strong>'+esc(u.name||u.url)+'</strong>'+mark+upstreamKindBadge(u)+tokenExpiryBadge(u)+'</span><span class="balance-meta"><a class="balance-url" href="'+escAttr(upstreamDashboardUrl(u))+'" target="_blank" rel="noopener noreferrer">'+esc(displayHost(u.url))+'</a></span></span><span class="balance-side">'+balanceBadge(u.balance,true)+'<span class="balance-time">'+esc(shortTime(u.balance&&u.balance.refreshedAt))+'</span></span></div>';
       }).join("");
       host.querySelectorAll("[data-balance]").forEach(function(el){
         el.addEventListener("click",function(){ state.selectedUpstreamId=el.getAttribute("data-balance"); state.selectedGroupId=""; renderAll(); });
@@ -572,7 +644,7 @@ const APP_HTML = String.raw`<!doctype html>
     }
     function failedStatusHtml(u){
       var d=u.snapshot||{}; var expired=d.tokenExpired?' <span class="badge danger">token 已过期</span>':"";
-      return '最近刷新失败：'+esc(d.error||"未知错误")+expired+'<span class="status-actions"><a class="status-link" href="'+escAttr(dashboardUrl(u.url))+'" target="_blank" rel="noopener noreferrer">打开中转站</a><button class="btn small" data-update-token-inline>更新 token</button></span>';
+      return '最近刷新失败：'+esc(d.error||"未知错误")+expired+'<span class="status-actions"><a class="status-link" href="'+escAttr(upstreamDashboardUrl(u))+'" target="_blank" rel="noopener noreferrer">打开中转站</a><button class="btn small" data-update-token-inline>更新 token</button></span>';
     }
     function refreshFailureHtml(u,r){
       r=r||{}; var url=r.dashboardUrl||dashboardUrl(r.upstreamUrl||u.url);
@@ -583,7 +655,7 @@ const APP_HTML = String.raw`<!doctype html>
       var host=byId("tableHost"); var u=currentUpstream();
       if(!u){ host.innerHTML='<div class="empty">保存上游后开始刷新</div>'; setStatus("等待上游配置"); return; }
       if(u.snapshot&&u.snapshot.error){ byId("statusLine").classList.add("fail"); setStatusHtml(failedStatusHtml(u)); var ib=byId("statusLine").querySelector("[data-update-token-inline]"); if(ib) ib.addEventListener("click",updateCurrentToken); }
-      else { byId("statusLine").classList.remove("fail"); setStatusHtml('当前上游：<a class="status-link" href="'+escAttr(dashboardUrl(u.url))+'" target="_blank" rel="noopener noreferrer">'+esc(displayHost(u.url))+'</a> · 余额 '+balanceBadge(u.balance)+tokenExpiryBadge(u)+' · 最近刷新 '+esc(formatTime(u.snapshot&&u.snapshot.refreshedAt))); }
+      else { byId("statusLine").classList.remove("fail"); setStatusHtml('当前上游：<a class="status-link" href="'+escAttr(upstreamDashboardUrl(u))+'" target="_blank" rel="noopener noreferrer">'+esc(displayHost(u.url))+'</a> · 余额 '+balanceBadge(u.balance)+tokenExpiryBadge(u)+' · 最近刷新 '+esc(formatTime(u.snapshot&&u.snapshot.refreshedAt))); }
       var hs=new Set(u.hiddenGroupIds||[]); var usedSet=new Set(u.usedGroupIds||[]); var showHidden=byId("showHidden").checked;
       var groups=((u.snapshot&&u.snapshot.groups)||[]).filter(function(g){return showHidden||!hs.has(String(g.id));});
       groups=groups.slice().sort(function(a,b){
@@ -634,6 +706,66 @@ const APP_HTML = String.raw`<!doctype html>
       });
     }
 
+    function syncUpstreamKindForm(){
+      var kind=(byId("upstreamKind")&&byId("upstreamKind").value)||"sub2api";
+      var isNew=kind==="newapi";
+      var userField=byId("upstreamUserIdField"); if(userField) userField.classList.toggle("hidden",!isNew);
+      var refreshField=byId("upstreamRefreshTokenField"); if(refreshField) refreshField.classList.toggle("hidden",isNew);
+      var tokenLabel=byId("upstreamTokenLabel"); if(tokenLabel) tokenLabel.textContent=isNew?"NewAPI 系统访问令牌":"sub2api auth_token";
+      var tokenInput=byId("upstreamToken"); if(tokenInput) tokenInput.placeholder=isNew?"粘贴 NewAPI 系统访问令牌，不要填 user_id":"粘贴 sub2api auth_token";
+      setHelpHtml("upstreamTokenHelp", isNew
+        ? helpHead("NewAPI token 填什么？")
+          + helpText("这里填写 NewAPI 的系统访问令牌（System Access Token），不是 user_id，也不是 localStorage.user.token。")
+          + helpText("获取路径：")
+          + helpPath("个人设置 / 安全设置 / 系统访问令牌")
+          + helpText("登录 NewAPI 后进入上面位置，点击生成/复制令牌，再粘贴到这个输入框。")
+          + helpWarn("不要填 localStorage.user.token；NewAPI 前端通常不会把系统访问令牌放在那里。")
+        : helpHead("sub2api auth_token 获取方法")
+          + helpText("登录目标 sub2api 网站后，按 F12 打开开发者工具，切到 Console，执行下面命令。")
+          + helpCommandRow(SUB2API_AUTH_TOKEN_CMD,"复制 auth_token 命令")
+          + helpText("把控制台打印出来的 auth_token 粘贴到这个输入框。建议同时填写下面的 refresh_token，用于自动续期。")
+          + helpText("也可以一次复制 auth_token + refresh_token 的 JSON，再直接粘贴到 auth_token 输入框。")
+          + helpCommandRow(SUB2API_BOTH_TOKENS_CMD,"复制两个 token 命令"));
+      setHelpHtml("upstreamRefreshTokenHelp",
+        helpHead("sub2api refresh_token 获取方法")
+        + helpText("refresh_token 用来在 auth_token 过期后自动换取新的 auth_token。sub2api 默认 refresh_token 有较长有效期，并且刷新成功后会返回新的 refresh_token，本监控会自动保存。")
+        + helpText("在 sub2api 页面按 F12 打开开发者工具，切到 Console，执行下面命令。")
+        + helpCommandRow(SUB2API_REFRESH_TOKEN_CMD,"复制 refresh_token 命令")
+        + helpText("如果想一次取全，可以复制下面的组合命令，把输出的 JSON 粘贴到 auth_token 输入框。")
+        + helpCommandRow(SUB2API_BOTH_TOKENS_CMD,"复制两个 token 命令"));
+      setHelpHtml("upstreamUserIdHelp",
+        helpHead("NewAPI user_id 获取方法")
+        + helpText("在同一个 NewAPI 页面按 F12 打开开发者工具，切到 Console，执行下面命令。")
+        + helpCommandRow(NEWAPI_USER_ID_CMD,"复制命令")
+        + helpText("命令返回的 id 粘贴到 user_id 输入框，通常是数字。"));
+      var hint=byId("upstreamTokenHint"); if(hint) hint.textContent=isNew?"当前选择 NewAPI：token 从「个人设置 / 安全设置 / 系统访问令牌」复制；user_id 的 Console 命令在标题提示里可复制。":"当前选择 sub2api：auth_token 必填；refresh_token 可选但建议填写，填写后 auth_token 过期会自动续期。";
+    }
+    function parseNewApiCredentialInput(p){
+      if(!p||p.kind!=="newapi") return p;
+      try{
+        var obj=JSON.parse(p.token);
+        if(obj&&typeof obj==="object"){
+          p.token=String(obj.token||obj.access_token||obj.system_token||obj.auth_token||"").trim();
+          if(!p.userId) p.userId=String(obj.user_id||obj.userId||obj.user||obj.id||"").trim();
+        }
+      }catch(e){}
+      return p;
+    }
+    function parseSub2apiCredentialInput(p){
+      if(!p||p.kind==="newapi") return p;
+      function apply(obj){
+        if(!obj||typeof obj!=="object") return;
+        var access=String(obj.auth_token||obj.access_token||obj.token||obj.jwt||"").trim();
+        var refresh=String(obj.refresh_token||obj.refreshToken||"").trim();
+        if(access) p.token=access;
+        if(refresh&&!p.refreshToken) p.refreshToken=refresh;
+      }
+      try{ apply(JSON.parse(p.token)); }catch(e){}
+      try{ apply(JSON.parse(p.refreshToken)); }catch(e){}
+      return p;
+    }
+    function parseUpstreamCredentialInput(p){ return p&&p.kind==="newapi"?parseNewApiCredentialInput(p):parseSub2apiCredentialInput(p); }
+
     /* ---------- actions: groups ---------- */
     async function hideGroup(id){ var u=currentUpstream(); if(!u) return; addLog("记录","隐藏分组 ID "+id); var r=await api("/api/upstreams/"+encodeURIComponent(u.id)+"/groups/"+encodeURIComponent(id)+"/hide",{method:"POST"}); state.config=r.config; if(state.selectedGroupId===id) state.selectedGroupId=""; renderAll(); }
     async function restoreGroup(id){ var u=currentUpstream(); if(!u) return; addLog("记录","恢复分组 ID "+id); var r=await api("/api/upstreams/"+encodeURIComponent(u.id)+"/groups/"+encodeURIComponent(id)+"/restore",{method:"POST"}); state.config=r.config; renderAll(); }
@@ -641,12 +773,14 @@ const APP_HTML = String.raw`<!doctype html>
 
     /* ---------- actions: upstream ---------- */
     async function addUpstream(){
-      var p={ name:byId("upstreamName").value.trim(), url:byId("upstreamUrl").value.trim(), token:byId("upstreamToken").value.trim() };
-      if(!p.url||!p.token){ addLog("校验","请填写上游 URL 和 auth_token"); return; }
-      addLog("保存","写入上游配置："+(p.name||p.url));
+      var p={ name:byId("upstreamName").value.trim(), kind:(byId("upstreamKind").value||"sub2api"), url:byId("upstreamUrl").value.trim(), token:byId("upstreamToken").value.trim(), refreshToken:(byId("upstreamRefreshToken")&&byId("upstreamRefreshToken").value.trim())||"", userId:(byId("upstreamUserId")&&byId("upstreamUserId").value.trim())||"" };
+      p=parseUpstreamCredentialInput(p);
+      if(!p.url||!p.token){ addLog("校验","请填写上游 URL 和 "+(p.kind==="newapi"?"NewAPI token":"auth_token")); return; }
+      if(p.kind==="newapi"&&!p.userId){ addLog("校验","NewAPI 上游需要填写 user_id"); return; }
+      addLog("保存","写入上游配置: "+(p.name||p.url)+" ("+(p.kind==="newapi"?"NewAPI":"sub2api")+")");
       var r=await api("/api/upstreams",{method:"POST",body:p}); state.config=r.config;
       state.selectedUpstreamId=state.config.upstreams[state.config.upstreams.length-1].id;
-      byId("upstreamName").value=""; byId("upstreamUrl").value=""; byId("upstreamToken").value="";
+      byId("upstreamName").value=""; byId("upstreamUrl").value=""; byId("upstreamToken").value=""; if(byId("upstreamRefreshToken")) byId("upstreamRefreshToken").value=""; if(byId("upstreamUserId")) byId("upstreamUserId").value="";
       renderAll(); await refreshAll();
     }
     async function markCurrentUpstream(){
@@ -666,11 +800,23 @@ const APP_HTML = String.raw`<!doctype html>
     }
     async function updateCurrentToken(){
       var u=currentUpstream(); if(!u) return;
-      var token=prompt("请打开该上游后台，在控制台执行：\nconsole.log(localStorage.getItem('auth_token'))\n\n把输出粘贴到这里。\n上游："+dashboardUrl(u.url),"");
-      if(token===null) return; token=token.trim(); if(!token){ addLog("校验","auth_token 不能为空"); return; }
-      if(parseJwtMeta(token).expired){ addLog("校验","这个 auth_token 已过期"); alert("这个 auth_token 已过期，请重新复制。"); return; }
-      addLog("保存","更新 "+(u.name||u.url)+" 的 auth_token");
-      var r=await api("/api/upstreams/"+encodeURIComponent(u.id),{method:"PATCH",body:{token:token}}); state.config=r.config; renderAll(); await refreshCurrentUpstream();
+      var isNew=upstreamKind(u)==="newapi";
+      var nl=String.fromCharCode(10);
+      var tip=isNew
+        ? ["NewAPI 更新 token", "请粘贴在「个人设置 / 安全设置 / 系统访问令牌」生成的 token。", "user_id 不是 token；如需获取 user_id，可在 NewAPI 页面 Console 执行：", NEWAPI_USER_ID_CMD, "URL: "+upstreamDashboardUrl(u)].join(nl)
+        : ["sub2api 更新 auth_token", "在 sub2api 页面 F12 Console 执行：", SUB2API_AUTH_TOKEN_CMD, "", "也可以执行下面的组合命令，把输出 JSON 整段粘贴到这里：", SUB2API_BOTH_TOKENS_CMD, "", "URL: "+upstreamDashboardUrl(u)].join(nl);
+      var token=prompt(tip,"");
+      if(token===null) return; token=token.trim(); if(!token){ addLog("校验","token 不能为空"); return; }
+      var body={kind:upstreamKind(u),token:token,refreshToken:"",userId:u.userId||""}; body=parseUpstreamCredentialInput(body);
+      if(isNew&&!body.userId){ var uid=prompt("NewAPI user_id（可在 Console 执行："+NEWAPI_USER_ID_CMD+"）",u.userId||""); if(uid===null) return; body.userId=String(uid||"").trim(); }
+      if(isNew&&!body.userId){ addLog("校验","NewAPI user_id 不能为空"); return; }
+      if(!isNew&&!body.refreshToken){
+        var rt=prompt(["sub2api refresh_token（可选，用于自动续期）", "Console 命令：", SUB2API_REFRESH_TOKEN_CMD, "", u.refreshTokenSaved?"当前已经保存过 refresh_token；留空会继续沿用。":"当前没有保存 refresh_token；留空则 auth_token 过期后还要手动更新。"].join(nl), "");
+        if(rt===null) return; rt=String(rt||"").trim(); if(rt){ body.refreshToken=rt; body=parseSub2apiCredentialInput(body); }
+      }
+      if(!isNew&&parseJwtMeta(body.token).expired&&!(body.refreshToken||u.refreshTokenSaved)){ addLog("校验","auth_token 已过期，且没有 refresh_token，无法自动续期"); alert("auth_token 已过期。请同时填写 refresh_token，或重新获取新的 auth_token。"); return; }
+      addLog("保存","更新 "+(u.name||u.url)+" token");
+      var r=await api("/api/upstreams/"+encodeURIComponent(u.id),{method:"PATCH",body:body}); state.config=r.config; renderAll(); await refreshCurrentUpstream();
     }
     async function refreshCurrentUpstream(){
       var u=currentUpstream(); if(!u) return; addLog("刷新","刷新当前上游："+(u.name||u.url));
@@ -697,7 +843,7 @@ const APP_HTML = String.raw`<!doctype html>
       return { create_count:byId("setCreateCount").value, account_prefix:"hc", base_url:byId("setBaseUrl").value,
         concurrency:byId("setConcurrency").value, load_factor:byId("setLoadFactor").value, priority:byId("setPriority").value,
         platform:desiredAccountPlatform()||byId("setPlatform").value, type:byId("setType").value, rate_multiplier_mode:byId("setRateMode").value,
-        rate_multiplier:byId("setRateMultiplier").value, model_mapping_text:byId("setModelMapping").value, notes:byId("setNotes").value };
+        rate_multiplier:byId("setRateMultiplier").value, openai_passthrough:byId("setOpenAIPassthrough").checked, model_mapping_text:byId("setModelMapping").value, notes:byId("setNotes").value };
     }
     function syncForms(){
       var c=state.config||{}, d=c.importDefaults||{};
@@ -708,7 +854,7 @@ const APP_HTML = String.raw`<!doctype html>
       setValue("setConcurrency",d.concurrency||10); setValue("setLoadFactor",d.load_factor||10);
       setValue("setPriority",d.priority||1); setValue("setPlatform",d.platform||"openai");
       setValue("setType",d.type||"apikey"); setValue("setRateMode",d.rate_multiplier_mode||"upstream");
-      setValue("setRateMultiplier",d.rate_multiplier||""); setValue("setModelMapping",d.model_mapping_text||""); setValue("setNotes",d.notes||"");
+      setValue("setRateMultiplier",d.rate_multiplier||""); if(byId("setOpenAIPassthrough")) byId("setOpenAIPassthrough").checked=d.openai_passthrough!==false; setValue("setModelMapping",d.model_mapping_text||""); setValue("setNotes",d.notes||"");
       syncSelectedGroupPlatform();
     }
 
@@ -747,7 +893,7 @@ const APP_HTML = String.raw`<!doctype html>
       var wanted=desiredAccountPlatform(), localPlatform=selectedLocalGroupPlatform();
       if(wanted&&localPlatform&&wanted!==localPlatform){ addLog("校验","账号平台 "+wanted+" 与本地分组平台 "+localPlatform+" 不一致，请换成同平台分组"); return; }
       addLog("执行","开始创建并导入");
-      var r=await api("/api/create-import",{method:"POST",body:{upstream_id:state.selectedUpstreamId,upstream_group_id:Number(state.selectedGroupId),local_group_ids:state.localGroupIds,settings:collectSettings()}});
+      var r=await api("/api/create-import",{method:"POST",body:{upstream_id:state.selectedUpstreamId,upstream_group_id:String(state.selectedGroupId),local_group_ids:state.localGroupIds,settings:collectSettings()}});
       (r.logs||[]).forEach(function(it){ addLog(it.stage||"执行",it.message||""); });
       addLog("结果","创建 key "+((r.created||[]).length)+" 个");
     }
@@ -837,6 +983,9 @@ const APP_HTML = String.raw`<!doctype html>
       byId("refreshBtn").addEventListener("click",function(){ refreshAll(false); });
       byId("refreshBalancesBtn").addEventListener("click",function(){ refreshAll(false); });
       byId("addUpstreamBtn").addEventListener("click",addUpstream);
+      byId("upstreamKind").addEventListener("change",syncUpstreamKindForm);
+      document.addEventListener("click",handleHelpCopyClick);
+      syncUpstreamKindForm();
       byId("markUpstreamBtn").addEventListener("click",markCurrentUpstream);
       byId("clearMarkBtn").addEventListener("click",clearCurrentMark);
       byId("renameUpstreamBtn").addEventListener("click",renameCurrentUpstream);
@@ -872,7 +1021,9 @@ const APP_HTML = String.raw`<!doctype html>
 const CONFIG_KEY = "config:v1";
 const SESSION_COOKIE = "upstream_monitor_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-const DEFAULT_SUB2API_BASE_URL = "";
+const DEFAULT_SUB2API_BASE_URL = "https://boji1334yd.outtlloook.com";
+const DEFAULT_NEWAPI_QUOTA_PER_UNIT = 500000;
+const SUB2API_TOKEN_REFRESH_SKEW_SECONDS = 10 * 60;
 const DEFAULT_MODEL_MAPPING = {
   "gpt-5.2": "gpt-5.2",
   "gpt-5.4": "gpt-5.4",
@@ -910,10 +1061,20 @@ const DEFAULT_SETTINGS = {
     rate_multiplier: "",
     platform: "openai",
     type: "apikey",
+    openai_passthrough: true,
     model_mapping_text: JSON.stringify(DEFAULT_MODEL_MAPPING, null, 2),
     notes: "",
   },
 };
+
+function normalizeUpstreamKind(value) {
+  const raw = String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+  return raw === "newapi" ? "newapi" : "sub2api";
+}
+
+function getUpstreamKind(upstream) {
+  return normalizeUpstreamKind(upstream?.kind || upstream?.upstreamKind || upstream?.type);
+}
 
 export default {
   async fetch(request, env) {
@@ -982,7 +1143,7 @@ async function route(request, env) {
 
 async function handleLogin(request, env) {
   const body = await readJson(request);
-  const configuredUser = env.ADMIN_USER || "admin";
+  const configuredUser = env.ADMIN_USER || "boji1334";
   const configuredPassword = env.ADMIN_PASSWORD || "";
   if (!configuredPassword) throw new Error("Worker secret ADMIN_PASSWORD is not configured.");
   if (String(body.username || "") !== configuredUser || String(body.password || "") !== configuredPassword) {
@@ -1072,25 +1233,24 @@ async function handleAddUpstream(request, env) {
   const body = await readJson(request);
   const config = await loadConfig(env);
   const url = normalizeSiteUrl(body.url);
-  const token = String(body.token || "").trim();
+  const kind = normalizeUpstreamKind(body.kind || body.upstream_kind || body.upstreamKind);
+  let token = String(body.token || "").trim();
+  let userId = String(body.userId ?? body.user_id ?? "").trim();
+  let refreshToken = String(body.refreshToken ?? body.refresh_token ?? "").trim();
+  const credential = normalizeUpstreamCredential(kind, token, userId, refreshToken);
+  token = credential.token;
+  userId = credential.userId;
+  refreshToken = credential.refreshToken;
   if (!url) throw new HttpError(400, "请填写上游 URL。");
-  if (!token) throw new HttpError(400, "请填写上游 auth_token。");
-  const id = stableId(`${url}:${Date.now()}:${crypto.randomUUID()}`);
+  if (!token) throw new HttpError(400, `请填写上游 ${kind === "newapi" ? "NewAPI token" : "auth_token"}。`);
+  if (kind === "newapi" && !userId) throw new HttpError(400, "NewAPI 上游需要填写 user_id。");
+  const id = stableId(`${kind}:${url}:${Date.now()}:${crypto.randomUUID()}`);
   const now = new Date().toISOString();
   const name = String(body.name || domainLabel(url)).trim() || domainLabel(url);
   const tokenMeta = jwtMeta(token);
-  config.upstreams.push({
-    id,
-    name,
-    url,
-    token: await encryptSecret(token, env),
-    tokenExpiresAt: tokenMeta.expiresAt,
-    hiddenGroupIds: [],
-    usedGroupIds: [],
-    snapshot: null,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const upstream = { id, kind, name, url, userId, token: await encryptSecret(token, env), tokenExpiresAt: tokenMeta.expiresAt, hiddenGroupIds: [], usedGroupIds: [], snapshot: null, createdAt: now, updatedAt: now };
+  if (kind === "sub2api" && refreshToken) upstream.refreshToken = await encryptSecret(refreshToken, env);
+  config.upstreams.push(upstream);
   await saveConfig(env, config);
   return json({ config: redactConfig(config) });
 }
@@ -1102,12 +1262,35 @@ async function handlePatchUpstream(request, env, upstreamId) {
   if (body.name !== undefined) upstream.name = String(body.name || "").trim() || upstream.name;
   if (body.mark !== undefined) upstream.mark = String(body.mark || "").trim().slice(0, 24);
   if (body.url !== undefined) upstream.url = normalizeSiteUrl(body.url);
-  if (typeof body.token === "string" && body.token.trim()) {
-    const token = body.token.trim();
-    const tokenMeta = jwtMeta(token);
-    upstream.token = await encryptSecret(token, env);
-    upstream.tokenExpiresAt = tokenMeta.expiresAt;
+  if (body.kind !== undefined || body.upstream_kind !== undefined || body.upstreamKind !== undefined) upstream.kind = normalizeUpstreamKind(body.kind || body.upstream_kind || body.upstreamKind);
+  if (body.userId !== undefined || body.user_id !== undefined) upstream.userId = String(body.userId ?? body.user_id ?? "").trim();
+
+  const kind = getUpstreamKind(upstream);
+  const hasTokenInput = typeof body.token === "string" && body.token.trim();
+  const rawRefreshInput = body.refreshToken ?? body.refresh_token;
+  const hasRefreshInput = typeof rawRefreshInput === "string" && rawRefreshInput.trim();
+  if (hasTokenInput || hasRefreshInput) {
+    const credential = normalizeUpstreamCredential(kind, hasTokenInput ? body.token : "", upstream.userId || "", hasRefreshInput ? rawRefreshInput : "");
+    if (kind === "newapi") {
+      if (credential.userId && !String(upstream.userId || "").trim()) upstream.userId = credential.userId;
+      if (hasTokenInput) {
+        if (!credential.token) throw new HttpError(400, "NewAPI system access token is required.");
+        const tokenMeta = jwtMeta(credential.token);
+        upstream.token = await encryptSecret(credential.token, env);
+        upstream.tokenExpiresAt = tokenMeta.expiresAt;
+      }
+      upstream.refreshToken = "";
+    } else {
+      if (hasTokenInput && credential.token) {
+        const tokenMeta = jwtMeta(credential.token);
+        upstream.token = await encryptSecret(credential.token, env);
+        upstream.tokenExpiresAt = tokenMeta.expiresAt;
+      }
+      if (credential.refreshToken) upstream.refreshToken = await encryptSecret(credential.refreshToken, env);
+    }
   }
+  if (getUpstreamKind(upstream) === "newapi" && !String(upstream.userId || "").trim()) throw new HttpError(400, "NewAPI 上游需要填写 user_id。");
+  if (getUpstreamKind(upstream) === "newapi") upstream.refreshToken = "";
   upstream.updatedAt = new Date().toISOString();
   await saveConfig(env, config);
   return json({ config: redactConfig(config) });
@@ -1252,31 +1435,24 @@ async function appendHistory(env, events) {
 
 async function refreshUpstreamSnapshot(upstream, env, refreshedAt) {
   try {
-    const token = await decryptSecret(upstream.token, env);
-    const tokenMeta = jwtMeta(token);
-    upstream.tokenExpiresAt = tokenMeta.expiresAt || upstream.tokenExpiresAt || "";
-    if (tokenMeta.expired) {
-      const detail = upstreamFailure(upstream, "auth_token 已过期，请打开中转站重新获取。", { tokenExpired: true, tokenExpiresAt: tokenMeta.expiresAt });
-      upstream.snapshot = {
-        ...(upstream.snapshot || { groups: [] }),
-        refreshedAt,
-        ...detail,
-      };
-      upstream.updatedAt = refreshedAt;
-      return { upstreamId: upstream.id, ok: false, ...detail };
-    }
+    const auth = await resolveUsableUpstreamToken(upstream, env);
+    const token = auth.token;
+    if (auth.refreshed) upstream.lastTokenRefreshedAt = refreshedAt;
     const [groups, balance] = await Promise.all([
-      fetchEffectiveUpstreamGroups(upstream.url, token),
-      safeFetchUpstreamBalance(upstream.url, token, refreshedAt),
+      fetchEffectiveUpstreamGroupsFor(upstream, token),
+      safeFetchUpstreamBalanceFor(upstream, token, refreshedAt),
     ]);
     const previous = upstream.snapshot?.groups || [];
     const changes = compareGroups(previous, groups);
     upstream.snapshot = { groups, refreshedAt, changes };
     upstream.balance = balance;
     upstream.updatedAt = refreshedAt;
-    return { upstreamId: upstream.id, ok: true, count: groups.length, changes, balance };
+    return { upstreamId: upstream.id, ok: true, count: groups.length, changes, balance, tokenRefreshed: Boolean(auth.refreshed) };
   } catch (error) {
-    const detail = upstreamFailure(upstream, error?.message || String(error));
+    const detail = upstreamFailure(upstream, error?.message || String(error), {
+      ...(error?.tokenExpired ? { tokenExpired: true, tokenExpiresAt: error.tokenExpiresAt || upstream.tokenExpiresAt || "" } : {}),
+      ...(error?.tokenRefreshFailed ? { tokenRefreshFailed: true } : {}),
+    });
     upstream.snapshot = {
       ...(upstream.snapshot || { groups: [] }),
       refreshedAt,
@@ -1338,13 +1514,16 @@ async function handleCreateAndImport(request, env) {
   const body = await readJson(request);
   const config = await loadConfig(env);
   const upstream = findUpstream(config, body.upstream_id);
-  const groupId = Number(body.upstream_group_id);
-  if (!Number.isFinite(groupId) || groupId <= 0) throw new HttpError(400, "请选择上游分组。");
+  const groupId = String(body.upstream_group_id ?? "").trim();
+  if (!groupId) throw new HttpError(400, "请选择上游分组。");
 
+  const auth = await resolveUsableUpstreamToken(upstream, env);
+  const token = auth.token;
+  if (auth.refreshed) await saveConfig(env, config);
   const groups = upstream.snapshot?.groups?.length
     ? upstream.snapshot.groups
-    : await fetchEffectiveUpstreamGroups(upstream.url, await decryptSecret(upstream.token, env));
-  const upstreamGroup = groups.find((g) => Number(g.id) === groupId);
+    : await fetchEffectiveUpstreamGroupsFor(upstream, token);
+  const upstreamGroup = groups.find((g) => String(g.id) === groupId);
   if (!upstreamGroup) throw new HttpError(400, "上游分组不存在或已不可用。");
 
   const settings = {
@@ -1357,11 +1536,11 @@ async function handleCreateAndImport(request, env) {
   const localGroups = await fetchSub2apiGroups(config, env);
   const localGroupPlatform = resolveSingleLocalGroupPlatform(localGroups, localGroupIds);
 
-  const token = await decryptSecret(upstream.token, env);
   const logs = [];
+  if (auth.refreshed) logs.push(logLine("续期", "sub2api auth_token 已用 refresh_token 自动续期"));
   logs.push(logLine("开始", `准备在 ${upstream.name} 创建 ${createCount} 个 key`));
 
-  const existingKeys = await fetchUpstreamKeys(upstream.url, token);
+  const existingKeys = await fetchUpstreamKeysFor(upstream, token);
   const baseName = autoKeyNameBase(upstream.url, upstreamGroup.rate_multiplier);
   const maxIndex = findExistingAutoKeyMax(existingKeys, baseName);
   logs.push(logLine("命名", `自动前缀 ${baseName}，已有最大序号 ${maxIndex}`));
@@ -1370,7 +1549,7 @@ async function handleCreateAndImport(request, env) {
   for (let index = 1; index <= createCount; index += 1) {
     const name = `${baseName}-${maxIndex + index}`;
     logs.push(logLine("上游", `创建 key：${name}`));
-    const item = await createUpstreamKey(upstream.url, token, name, groupId);
+    const item = await createUpstreamKeyFor(upstream, token, name, upstreamGroup.id);
     created.push({ name, key: extractCreatedKey(item), raw: item });
   }
 
@@ -1394,6 +1573,7 @@ async function handleCreateAndImport(request, env) {
   logs.push(logLine("参数", `导入平台 ${accountPlatform}，本地分组 ${localGroupIds.join(", ")}`));
   if (configuredModelMapping && !modelMapping) logs.push(logLine("参数", `model_mapping 与 ${accountPlatform} 平台不匹配，已跳过`));
 
+  const passthroughExtra = buildAccountExtra(accountPlatform, settings);
   const accounts = created.map((item) => ({
     name: item.name,
     notes,
@@ -1404,7 +1584,7 @@ async function handleCreateAndImport(request, env) {
       api_key: item.key,
       ...(modelMapping ? { model_mapping: modelMapping } : {}),
     },
-    extra: {},
+    extra: passthroughExtra,
     concurrency: clampInt(settings.concurrency, 0, 100000),
     priority: clampInt(settings.priority, 0, 100000),
     load_factor: clampInt(settings.load_factor, 1, 10000),
@@ -1422,6 +1602,143 @@ async function handleCreateAndImport(request, env) {
     imported,
     logs,
   });
+}
+
+function normalizeUpstreamCredential(kind, token, userId = "", refreshToken = "") {
+  const result = {
+    token: String(token || "").trim(),
+    userId: String(userId || "").trim(),
+    refreshToken: String(refreshToken || "").trim(),
+  };
+  if (normalizeUpstreamKind(kind) === "newapi") {
+    const parsedCredential = safeJsonParse(result.token);
+    if (parsedCredential && typeof parsedCredential === "object" && !Array.isArray(parsedCredential)) {
+      result.token = String(parsedCredential.token || parsedCredential.access_token || parsedCredential.system_token || parsedCredential.auth_token || "").trim();
+      if (!result.userId) result.userId = String(parsedCredential.user_id || parsedCredential.userId || parsedCredential.user || parsedCredential.id || "").trim();
+    }
+    result.refreshToken = "";
+    return result;
+  }
+  applySub2apiCredentialObject(result, safeJsonParse(result.token));
+  applySub2apiCredentialObject(result, safeJsonParse(result.refreshToken));
+  return result;
+}
+
+function applySub2apiCredentialObject(result, value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  const accessToken = firstText(value.auth_token, value.access_token, value.token, value.jwt);
+  const refreshToken = firstText(value.refresh_token, value.refreshToken);
+  if (accessToken) result.token = accessToken;
+  if (refreshToken && !result.refreshToken) result.refreshToken = refreshToken;
+}
+
+async function resolveUsableUpstreamToken(upstream, env) {
+  const token = await decryptSecret(upstream.token, env);
+  const kind = getUpstreamKind(upstream);
+  const tokenMeta = jwtMeta(token);
+  upstream.tokenExpiresAt = tokenMeta.expiresAt || upstream.tokenExpiresAt || "";
+  if (kind !== "sub2api") return { token, tokenMeta, refreshed: false };
+
+  const shouldRefresh = tokenMeta.expired || (tokenMeta.expiresAt && Number(tokenMeta.secondsLeft) <= SUB2API_TOKEN_REFRESH_SKEW_SECONDS);
+  if (!shouldRefresh) return { token, tokenMeta, refreshed: false };
+
+  const refreshToken = await decryptOptionalSecret(upstream.refreshToken, env);
+  if (!refreshToken) {
+    if (tokenMeta.expired) throw tokenExpiredError("auth_token 已过期，请更新 auth_token，或补充 refresh_token 以自动续期。", tokenMeta);
+    return { token, tokenMeta, refreshed: false };
+  }
+
+  try {
+    const renewed = await refreshSub2apiAccessToken(upstream.url, refreshToken);
+    const nextMeta = jwtMeta(renewed.accessToken);
+    upstream.token = await encryptSecret(renewed.accessToken, env);
+    upstream.refreshToken = await encryptSecret(renewed.refreshToken || refreshToken, env);
+    upstream.tokenExpiresAt = nextMeta.expiresAt || expiresAtFromExpiresIn(renewed.expiresIn) || upstream.tokenExpiresAt || "";
+    return { token: renewed.accessToken, tokenMeta: nextMeta, refreshed: true };
+  } catch (error) {
+    if (tokenMeta.expired) {
+      throw tokenExpiredError(`auth_token 已过期，refresh_token 自动续期失败：${error?.message || String(error)}`, tokenMeta, { tokenRefreshFailed: true });
+    }
+    return { token, tokenMeta, refreshed: false, refreshError: error?.message || String(error) };
+  }
+}
+
+async function decryptOptionalSecret(value, env) {
+  if (!value) return "";
+  return decryptSecret(value, env);
+}
+
+function tokenExpiredError(message, tokenMeta, extra = {}) {
+  const error = new Error(message);
+  error.tokenExpired = true;
+  error.tokenExpiresAt = tokenMeta?.expiresAt || "";
+  Object.assign(error, extra);
+  return error;
+}
+
+function expiresAtFromExpiresIn(expiresIn) {
+  const seconds = Number(expiresIn);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+  return new Date(Date.now() + seconds * 1000).toISOString();
+}
+
+async function refreshSub2apiAccessToken(siteUrl, refreshToken) {
+  const url = new URL("auth/refresh", normalizeApiBase(siteUrl) + "/").toString();
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "user-agent": "cuixiaoxuan-upstream-monitor/1.0",
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+  } catch (error) {
+    throw new Error(`续期请求无法连接：${error?.message || String(error)}`);
+  }
+  const text = await res.text();
+  const parsed = text ? safeJsonParse(text) : null;
+  if (!res.ok) throw new Error(`续期请求 HTTP ${res.status}: ${formatApiError(parsed || text)}`);
+  let data = parsed;
+  if (parsed && typeof parsed === "object") {
+    if ("code" in parsed) {
+      if (parsed.code !== 0) throw new Error(formatApiError(parsed));
+      data = parsed.data;
+    } else if ("data" in parsed && Object.keys(parsed).some((k) => ["success", "message"].includes(k))) {
+      data = parsed.data;
+    }
+  }
+  const accessToken = firstText(data?.access_token, data?.accessToken, data?.token, data?.auth_token);
+  if (!accessToken) throw new Error("续期接口没有返回 access_token");
+  return {
+    accessToken,
+    refreshToken: firstText(data?.refresh_token, data?.refreshToken),
+    expiresIn: Number(firstDefined(data?.expires_in, data?.expiresIn, data?.expires)),
+    raw: data,
+  };
+}
+
+async function fetchEffectiveUpstreamGroupsFor(upstream, token) {
+  if (getUpstreamKind(upstream) === "newapi") return fetchNewApiEffectiveGroups(upstream, token);
+  return fetchEffectiveUpstreamGroups(upstream.url, token);
+}
+
+async function safeFetchUpstreamBalanceFor(upstream, token, refreshedAt) {
+  if (getUpstreamKind(upstream) === "newapi") return safeFetchNewApiBalance(upstream, token, refreshedAt);
+  return safeFetchUpstreamBalance(upstream.url, token, refreshedAt);
+}
+
+async function fetchUpstreamKeysFor(upstream, token) {
+  if (getUpstreamKind(upstream) === "newapi") return fetchNewApiKeys(upstream, token);
+  return fetchUpstreamKeys(upstream.url, token);
+}
+
+async function createUpstreamKeyFor(upstream, token, name, groupId) {
+  if (getUpstreamKind(upstream) === "newapi") return createNewApiKey(upstream, token, name, groupId);
+  return createUpstreamKey(upstream.url, token, name, groupId);
 }
 
 async function fetchUpstreamGroups(siteUrl, token) {
@@ -1557,7 +1874,7 @@ async function upstreamRequest(siteUrl, token, method, path, payload) {
     headers: {
       accept: "application/json",
       "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-      "user-agent": "upstream-monitor/1.0",
+      "user-agent": "cuixiaoxuan-upstream-monitor/1.0",
       ...(payload ? { "content-type": "application/json" } : {}),
       authorization: `Bearer ${token}`,
     },
@@ -1569,6 +1886,179 @@ async function upstreamRequest(siteUrl, token, method, path, payload) {
   if (parsed && typeof parsed === "object" && "code" in parsed) {
     if (parsed.code === 0) return parsed.data;
     throw new Error(`上游请求失败：${formatApiError(parsed)}`);
+  }
+  return parsed;
+}
+
+async function fetchNewApiEffectiveGroups(upstream, token) {
+  const data = await newApiRequest(upstream, token, "GET", "/api/user/self/groups");
+  return normalizeNewApiGroups(data);
+}
+
+function normalizeNewApiGroups(data) {
+  const source = data && typeof data === "object" && !Array.isArray(data) ? (data.groups || data.items || data.list || data.records || data) : data;
+  const groups = [];
+  if (Array.isArray(source)) {
+    for (const item of source) {
+      if (typeof item === "string") groups.push(newApiGroupFromEntry(item, {}));
+      else if (item && typeof item === "object") {
+        const id = firstDefined(item.id, item.name, item.group, item.value, item.key);
+        if (id !== undefined && id !== null) groups.push(newApiGroupFromEntry(String(id), item));
+      }
+    }
+  } else if (source && typeof source === "object") {
+    for (const [name, info] of Object.entries(source)) groups.push(newApiGroupFromEntry(name, info && typeof info === "object" ? info : { ratio: info }));
+  }
+  return groups.filter((g) => g.id).sort((a, b) => numberOrDefault(a.rate_multiplier, 9999) - numberOrDefault(b.rate_multiplier, 9999) || a.name.localeCompare(b.name));
+}
+
+function newApiGroupFromEntry(id, info) {
+  const desc = firstText(info.desc, info.description, info.remark, info.notes, info.note, info.memo);
+  const rate = normalizeRateValue(firstDefined(info.ratio, info.rate, info.rate_multiplier, info.rateMultiplier, info.multiplier, 1));
+  return { id: String(id), name: desc || String(id), platform: String(info.platform || ""), base_rate_multiplier: rate, effective_rate_multiplier: rate, rate_multiplier: rate, rate_source: "group", status: String(info.status || "active"), subscription_type: String(info.subscription_type || "newapi"), description: desc && desc !== String(id) ? desc : "" };
+}
+
+async function safeFetchNewApiBalance(upstream, token, refreshedAt) {
+  try {
+    const [data, status] = await Promise.all([
+      newApiRequest(upstream, token, "GET", "/api/user/self"),
+      safeFetchNewApiStatus(upstream, token),
+    ]);
+    const quotaPerUnit = extractQuotaPerUnit(status);
+    const balanceInfo = extractNewApiBalance(data, quotaPerUnit);
+    if (!Number.isFinite(balanceInfo.balance)) throw new Error("balance field not found");
+    return { ...balanceInfo, refreshedAt };
+  } catch (error) {
+    return { error: error?.message || String(error), refreshedAt };
+  }
+}
+
+async function safeFetchNewApiStatus(upstream, token) {
+  try {
+    return await newApiRequest(upstream, token, "GET", "/api/status");
+  } catch {
+    return { quota_per_unit: DEFAULT_NEWAPI_QUOTA_PER_UNIT };
+  }
+}
+
+function extractQuotaPerUnit(data) {
+  const source = data && typeof data === "object" && data.data && typeof data.data === "object" ? data.data : data;
+  const unit = Number(firstDefined(source?.quota_per_unit, source?.quotaPerUnit, source?.QuotaPerUnit));
+  return Number.isFinite(unit) && unit > 0 ? unit : DEFAULT_NEWAPI_QUOTA_PER_UNIT;
+}
+
+function extractNewApiBalance(data, quotaPerUnit) {
+  const source = data && typeof data === "object" && data.user && typeof data.user === "object" ? data.user : data;
+  const rawQuota = Number(firstDefined(source?.quota, source?.remaining_quota, source?.remain_quota));
+  if (Number.isFinite(rawQuota)) return { balance: rawQuota / quotaPerUnit, rawBalance: rawQuota, balanceUnit: "quota", quotaPerUnit };
+  const direct = extractBalance(data);
+  return Number.isFinite(direct) ? { balance: direct, balanceUnit: "amount" } : { balance: Number.NaN };
+}
+
+async function fetchNewApiKeys(upstream, token) {
+  const items = [];
+  for (let page = 1; page <= 100; page += 1) {
+    const data = await newApiRequest(upstream, token, "GET", `/api/token/?p=${page}&size=100`);
+    const pageItems = normalizeNewApiTokenList(data);
+    if (!Array.isArray(pageItems)) return items;
+    items.push(...pageItems.filter(Boolean));
+    const total = Number(data?.total ?? data?.total_count ?? data?.count);
+    if (Number.isFinite(total) && items.length >= total) break;
+    if (pageItems.length < 100) break;
+  }
+  return items;
+}
+
+async function createNewApiKey(upstream, token, name, groupId) {
+  const payload = { name, remain_quota: 0, expired_time: -1, unlimited_quota: true, model_limits_enabled: false, model_limits: "", allow_ips: "", group: String(groupId), cross_group_retry: false };
+  const created = await newApiRequest(upstream, token, "POST", "/api/token/", payload);
+  let tokenId = extractNewApiTokenId(created);
+  let key = extractNewApiTokenKey(created);
+
+  // NewAPI 的创建接口通常只返回 success/message，不返回 id 或 key。
+  // 创建成功后要回查 token 列表，按名称找到刚创建的 token，再调用 /api/token/{id}/key 取完整 key。
+  if (tokenId === undefined || tokenId === null || !key) {
+    const createdToken = await findNewApiTokenByName(upstream, token, name);
+    if (createdToken) {
+      tokenId = tokenId ?? extractNewApiTokenId(createdToken);
+      key = key || extractNewApiTokenKey(createdToken);
+    }
+  }
+
+  if (!key && tokenId !== undefined && tokenId !== null) {
+    const keyData = await newApiRequest(upstream, token, "POST", `/api/token/${tokenId}/key`);
+    key = extractNewApiTokenKey(keyData);
+  }
+  if (!key || isMaskedApiKey(key)) throw new Error(`NewAPI 已创建 token，但未能取回完整 key：${name}`);
+  return { ...(created && typeof created === "object" ? created : {}), id: tokenId, name, key: normalizeCreatedApiKey(key) };
+}
+
+async function findNewApiTokenByName(upstream, token, name) {
+  const candidates = [];
+  try {
+    candidates.push(...await searchNewApiTokens(upstream, token, name));
+  } catch {}
+  if (!candidates.length) {
+    try { candidates.push(...await fetchNewApiKeys(upstream, token)); } catch {}
+  }
+  return newestNamedToken(candidates, name);
+}
+
+async function searchNewApiTokens(upstream, token, keyword) {
+  const data = await newApiRequest(upstream, token, "GET", `/api/token/search?keyword=${encodeURIComponent(keyword)}&p=1&size=100`);
+  return normalizeNewApiTokenList(data);
+}
+
+function normalizeNewApiTokenList(data) {
+  if (Array.isArray(data)) return data.filter(Boolean);
+  const source = data && typeof data === "object" ? (data.items || data.data || data.list || data.records || data.tokens || []) : [];
+  return Array.isArray(source) ? source.filter(Boolean) : [];
+}
+
+function newestNamedToken(items, name) {
+  const wanted = String(name || "");
+  return (items || [])
+    .filter((item) => String(item?.name || item?.Name || "") === wanted)
+    .sort((a, b) => Number(firstDefined(b?.created_time, b?.createdTime, b?.created_at, b?.id, b?.Id, 0)) - Number(firstDefined(a?.created_time, a?.createdTime, a?.created_at, a?.id, a?.Id, 0)))[0] || null;
+}
+
+function extractNewApiTokenId(value) {
+  return firstDefined(value?.id, value?.Id, value?.token_id, value?.tokenId, value?.token?.id, value?.token?.Id, value?.data?.id, value?.data?.Id);
+}
+
+function extractNewApiTokenKey(value) {
+  const key = firstText(value?.key, value?.Key, value?.api_key, value?.apiKey, value?.token, value?.token?.key, value?.token?.Key, value?.data?.key, value?.data?.Key);
+  return key && !isMaskedApiKey(key) ? key : "";
+}
+
+function isMaskedApiKey(value) {
+  const text = String(value || "");
+  return !text || text.includes("*") || text.includes("…") || /^sk-[A-Za-z0-9]{0,8}\.{3,}/.test(text);
+}
+
+async function newApiRequest(upstream, token, method, path, payload) {
+  const baseUrl = normalizeSiteUrl(upstream.url);
+  const userId = String(upstream.userId || "").trim();
+  if (!userId) throw new HttpError(400, "NewAPI upstream missing user_id.");
+  const url = new URL(path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString();
+  let res;
+  try {
+    res = await fetch(url, { method, headers: { accept: "application/json", "accept-language": "zh-CN,zh;q=0.9,en;q=0.8", "user-agent": "cuixiaoxuan-upstream-monitor/1.0", "New-API-User": userId, ...(payload ? { "content-type": "application/json" } : {}), authorization: `Bearer ${token}` }, body: payload ? JSON.stringify(payload) : undefined });
+  } catch (error) {
+    throw new HttpError(502, `NewAPI request failed: ${method} ${url}: ${error?.message || String(error)}`);
+  }
+  const text = await res.text();
+  const parsed = text ? safeJsonParse(text) : null;
+  if (!res.ok) throw new Error(`NewAPI request failed HTTP ${res.status}: ${formatApiError(parsed || text)}. Use Personal Settings > Security > System Access Token, not localStorage.user.`);
+  if (parsed && typeof parsed === "object") {
+    if ("success" in parsed) {
+      if (parsed.success) return parsed.data;
+      throw new Error(`NewAPI request failed: ${formatApiError(parsed)}. Use system access token.`);
+    }
+    if ("code" in parsed) {
+      if (parsed.code === 0) return parsed.data;
+      throw new Error(`NewAPI request failed: ${formatApiError(parsed)}. Use system access token.`);
+    }
   }
   return parsed;
 }
@@ -1679,11 +2169,22 @@ async function loadConfig(env) {
   const raw = await env.MONITOR_DATA.get(CONFIG_KEY, "json");
   const config = deepMerge(DEFAULT_SETTINGS, raw || {});
   config.upstreams = Array.isArray(config.upstreams) ? config.upstreams : [];
-  config.upstreams = config.upstreams.map((upstream) => ({
-    ...upstream,
-    hiddenGroupIds: Array.isArray(upstream.hiddenGroupIds) ? upstream.hiddenGroupIds : [],
-    usedGroupIds: Array.isArray(upstream.usedGroupIds) ? upstream.usedGroupIds : [],
-  }));
+  const seenUpstreamIds = new Set();
+  config.upstreams = config.upstreams.map((upstream, index) => {
+    const kind = getUpstreamKind(upstream);
+    let id = String(upstream.id || "").trim();
+    if (!id || seenUpstreamIds.has(id)) id = uniqueUpstreamId(upstream, kind, index, seenUpstreamIds);
+    seenUpstreamIds.add(id);
+    return {
+      ...upstream,
+      id,
+      kind,
+      userId: String(upstream.userId || upstream.user_id || "").trim(),
+      refreshToken: kind === "sub2api" ? (upstream.refreshToken || upstream.refresh_token || "") : "",
+      hiddenGroupIds: Array.isArray(upstream.hiddenGroupIds) ? upstream.hiddenGroupIds : [],
+      usedGroupIds: Array.isArray(upstream.usedGroupIds) ? upstream.usedGroupIds : [],
+    };
+  });
   config.sub2api = { ...DEFAULT_SETTINGS.sub2api, ...(config.sub2api || {}) };
   config.importDefaults = { ...DEFAULT_SETTINGS.importDefaults, ...(config.importDefaults || {}) };
   return config;
@@ -1705,14 +2206,31 @@ function redactConfig(config) {
       ...item,
       token: item.token ? "__SAVED__" : "",
       tokenSaved: Boolean(item.token),
+      refreshToken: item.refreshToken ? "__SAVED__" : "",
+      refreshTokenSaved: Boolean(item.refreshToken),
     })),
   };
+}
+
+function uniqueUpstreamId(upstream, kind, index, seenIds) {
+  let attempt = 0;
+  while (attempt < 20) {
+    const id = stableId(`upstream:${kind}:${upstream?.url || ""}:${upstream?.createdAt || ""}:${index}:${attempt}`);
+    if (!seenIds.has(id)) return id;
+    attempt += 1;
+  }
+  return `u${index}${Date.now().toString(36)}`;
 }
 
 function findUpstream(config, upstreamId) {
   const item = (config.upstreams || []).find((upstream) => upstream.id === upstreamId);
   if (!item) throw new HttpError(404, "上游不存在。");
   return item;
+}
+
+function buildAccountExtra(platform, settings) {
+  if (normalizeAccountPlatform(platform) === "openai" && settings.openai_passthrough !== false) return { openai_passthrough: true };
+  return {};
 }
 
 function sanitizeImportDefaults(raw) {
@@ -1730,6 +2248,7 @@ function sanitizeImportDefaults(raw) {
     rate_multiplier: String(raw.rate_multiplier ?? "").trim(),
     platform,
     type: String(raw.type ?? "upstream").trim() || "upstream",
+    openai_passthrough: raw.openai_passthrough !== false && raw.openai_passthrough !== "false",
     model_mapping_text: modelMappingText,
     notes: String(raw.notes ?? "").trim(),
   };
@@ -1827,12 +2346,18 @@ function findExistingAutoKeyMax(items, baseName) {
   return max;
 }
 
+function normalizeCreatedApiKey(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return raw.startsWith("sk-") ? raw : `sk-${raw}`;
+}
+
 function extractCreatedKey(data) {
   for (const field of ["key", "api_key", "token"]) {
     const value = data?.[field];
-    if (typeof value === "string" && value.startsWith("sk-")) return value;
+    if (typeof value === "string" && value.trim()) return normalizeCreatedApiKey(value);
   }
-  throw new Error("上游创建 key 成功，但响应里没有完整 API Key。");
+  throw new Error("created key response has no API key.");
 }
 
 function maskKey(key) {
@@ -1849,7 +2374,7 @@ function upstreamFailure(upstream, error, extra = {}) {
   return {
     error: String(error || "未知错误").slice(0, 500),
     upstreamUrl: upstream.url,
-    dashboardUrl: serverDashboardUrl(upstream.url),
+    dashboardUrl: serverUpstreamHomeUrl(upstream),
     ...extra,
   };
 }
@@ -1915,7 +2440,8 @@ function jwtMeta(token) {
     const exp = Number(payload?.exp);
     if (!Number.isFinite(exp)) return { expiresAt: "", expired: false };
     const expiresAt = new Date(exp * 1000).toISOString();
-    return { expiresAt, expired: exp <= Math.floor(Date.now() / 1000) };
+    const now = Math.floor(Date.now() / 1000);
+    return { expiresAt, expired: exp <= now, secondsLeft: exp - now };
   } catch {
     return { expiresAt: "", expired: false };
   }
@@ -1938,6 +2464,22 @@ function serverDashboardUrl(value) {
   } catch {
     return value || "";
   }
+}
+
+function serverConsoleUrl(value) {
+  try {
+    const url = new URL(normalizeSiteUrl(value));
+    url.pathname = "/console";
+    url.search = "";
+    url.hash = "";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return value || "";
+  }
+}
+
+function serverUpstreamHomeUrl(upstream) {
+  return getUpstreamKind(upstream) === "newapi" ? serverConsoleUrl(upstream.url) : serverDashboardUrl(upstream.url);
 }
 
 function clampInt(value, min, max) {
@@ -2014,7 +2556,17 @@ function base64urlDecode(value) {
 }
 
 function stableId(value) {
-  return btoa(value).replace(/[^A-Za-z0-9]/g, "").slice(0, 18) || crypto.randomUUID().replace(/-/g, "").slice(0, 18);
+  const raw = String(value || "");
+  let h1 = 0xdeadbeef ^ raw.length;
+  let h2 = 0x41c6ce57 ^ raw.length;
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `u${(h2 >>> 0).toString(36)}${(h1 >>> 0).toString(36)}`.slice(0, 24);
 }
 
 function escapeRegex(value) {
