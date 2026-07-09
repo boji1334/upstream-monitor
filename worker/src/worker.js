@@ -225,18 +225,26 @@ const APP_HTML = String.raw`<!doctype html>
     .usage-note{font-size:11.5px;color:var(--txt-faint);line-height:1.45}
     .usage-note strong{color:var(--txt-dim)}
     .usage-source{padding:9px 10px;border:1px solid rgba(45,212,191,.22);border-radius:12px;background:rgba(45,212,191,.055);font-size:11.5px;color:var(--txt-dim);line-height:1.5}
+    .usage-actions{display:flex;gap:7px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
     .usage-list{display:flex;flex-direction:column;gap:10px;max-height:none;overflow:visible;padding-right:0}
     .usage-group{border:1px solid var(--line);border-radius:14px;background:var(--bg-soft);overflow:hidden}
     .usage-group-head{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:11px 11px 10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(52,211,153,.055),rgba(255,255,255,.01))}
     .usage-group-title{display:flex;align-items:flex-start;gap:8px;line-height:1.35}
     .usage-group-title strong{flex:1;min-width:0;font-size:12.8px;font-weight:760;white-space:normal;word-break:break-word;color:var(--txt)}
     .usage-group-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .usage-toggle{appearance:none;border:1px solid var(--line-2);background:rgba(52,211,153,.08);color:var(--acc);border-radius:999px;padding:3px 8px;font:inherit;font-size:11px;font-weight:760;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+    .usage-toggle:hover{border-color:var(--acc);background:rgba(52,211,153,.14)}
+    .usage-caret{display:inline-block;width:10px;text-align:center;font-size:10px}
     .usage-accounts{display:flex;flex-direction:column;gap:8px;padding:8px}
+    .usage-group.collapsed .usage-accounts{display:none}
     .usage-account{display:block;padding:10px;border:1px solid rgba(155,200,188,.1);border-radius:12px;background:rgba(2,8,12,.28)}
     .usage-account:hover{background:rgba(52,211,153,.045)}
-    .usage-account-head{display:flex;align-items:flex-start;gap:8px}
-    .usage-account-head strong{flex:1;min-width:0;display:block;font-size:12.7px;line-height:1.35;white-space:normal;word-break:break-word;color:var(--txt)}
+    .usage-account-head{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
+    .usage-account-head strong{flex:1 1 118px;min-width:0;display:block;font-size:12.7px;line-height:1.35;white-space:normal;word-break:break-word;color:var(--txt)}
     .usage-account-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px}
+    .upstream-group-chip{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:3px 9px;border-radius:999px;background:linear-gradient(180deg,rgba(45,212,191,.24),rgba(52,211,153,.12));border:1px solid rgba(45,212,191,.45);color:#6fffe1;font-size:11px;font-weight:820;box-shadow:0 0 0 1px rgba(45,212,191,.05),0 8px 18px -14px rgba(45,212,191,.8);white-space:nowrap}
+    .upstream-group-chip.infer{background:rgba(96,165,250,.16);border-color:rgba(96,165,250,.35);color:#93c5fd}
+    .upstream-group-chip.warn{background:rgba(244,183,64,.16);border-color:rgba(244,183,64,.35);color:var(--warn)}
     .usage-kv{display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px;margin-top:7px;font-size:11px;line-height:1.38}
     .usage-kv span{color:var(--txt-faint)}
     .usage-kv b{font-weight:560;color:var(--txt-dim);word-break:break-all}
@@ -452,7 +460,7 @@ const APP_HTML = String.raw`<!doctype html>
     "use strict";
     var state = {
       config: null, selectedUpstreamId: "", selectedGroupId: "",
-      localGroups: [], localGroupIds: [], localUsage: null, localUsageLoading: false, localUsageUpstreamId: "", localUsageSeq: 0, rateSortDir: "asc",
+      localGroups: [], localGroupIds: [], localUsage: null, localUsageCollapsed: {}, localUsageLoading: false, localUsageUpstreamId: "", localUsageSeq: 0, rateSortDir: "asc",
       busy: false, autoTimer: null, autoRemaining: 0, historyOpen: false
     };
 
@@ -638,7 +646,7 @@ const APP_HTML = String.raw`<!doctype html>
     }
     function selectUpstream(id){
       if(!id||id===state.selectedUpstreamId) return;
-      state.selectedUpstreamId=id; state.selectedGroupId=""; state.localUsage=null; state.localUsageUpstreamId="";
+      state.selectedUpstreamId=id; state.selectedGroupId=""; state.localUsage=null; state.localUsageCollapsed={}; state.localUsageUpstreamId="";
       renderAll(); loadLocalUsage(false);
     }
 
@@ -762,6 +770,33 @@ const APP_HTML = String.raw`<!doctype html>
       if(r==="name") return "账号名称";
       return "兼容匹配";
     }
+    function localUsageUpstreamGroupSource(a){
+      var s=String((a&&a.upstream_group_source)||"").trim();
+      if(s==="marker") return "监控标记";
+      if(s==="inferred_name") return "按 Key 名称推断";
+      if(s==="inferred_rate") return "按账号倍率推断";
+      if(s==="inferred_multiple") return "多个同倍率候选";
+      return "未识别";
+    }
+    function upstreamGroupBadge(a){
+      a=a||{};
+      var id=String(a.upstream_group_id||"").trim();
+      var hasId=!!id;
+      var cls=hasId?(String(a.upstream_group_source||"").indexOf("inferred")===0?" infer":""):" warn";
+      var label=hasId?("上游分组 #"+id):"上游分组 ?";
+      var detail=(hasId?("#"+id+" "+(a.upstream_group_name||"")):"暂时无法从历史账号中识别上游分组 ID");
+      if(a.upstream_group_rate!=null&&a.upstream_group_rate!=="") detail+=" · 倍率 ×"+a.upstream_group_rate;
+      detail+=" · "+localUsageUpstreamGroupSource(a);
+      return '<span class="upstream-group-chip'+cls+'" title="'+escAttr(detail)+'">'+esc(label)+'</span>';
+    }
+    function upstreamGroupDetail(a){
+      a=a||{};
+      var id=String(a.upstream_group_id||"").trim();
+      var detail=id?("#"+id+" "+(a.upstream_group_name||"")):"未识别";
+      if(a.upstream_group_rate!=null&&a.upstream_group_rate!=="") detail+=" · ×"+a.upstream_group_rate;
+      detail+=" · "+localUsageUpstreamGroupSource(a);
+      return '<div class="usage-kv"><span>上游分组</span><b title="'+escAttr(detail)+'">'+esc(detail)+'</b></div>';
+    }
     function localUsageAccountCard(a){
       a=a||{};
       var name=a.name||("账号 "+(a.id||"-"));
@@ -777,12 +812,32 @@ const APP_HTML = String.raw`<!doctype html>
       var notes=a.notes||"";
       var reasons=(a.match&&a.match.reasons||[]).join(" / ");
       return '<div class="usage-account">'
-        + '<div class="usage-account-head"><strong title="'+escAttr(name)+'">'+esc(name)+'</strong>'+key+'</div>'
+        + '<div class="usage-account-head"><strong title="'+escAttr(name)+'">'+esc(name)+'</strong>'+upstreamGroupBadge(a)+key+'</div>'
         + '<div class="usage-account-badges"><span class="badge">本地账号 #'+esc(id)+'</span>'+platformBadge(a.platform||"-")+type+status+rate+priority+'<span class="badge">'+esc(concText)+'</span></div>'
+        + upstreamGroupDetail(a)
         + '<div class="usage-kv"><span>Base URL</span><b title="'+escAttr(base||"sub2api 未返回 base_url")+'">'+esc(base||"未返回")+'</b></div>'
         + (notes?'<div class="usage-kv"><span>备注</span><b title="'+escAttr(notes)+'">'+esc(notes)+'</b></div>':'')
         + '<div class="usage-kv"><span>识别方式</span><b><span class="usage-match" title="'+escAttr(reasons)+'">'+esc(localUsageMatchLabel(a))+'</span></b></div>'
         + '</div>';
+    }
+    function localUsageGroupKey(g,idx){ return String((g&&g.id!=null)?g.id:("idx-"+idx)); }
+    function bindLocalUsageControls(host,groups){
+      host.querySelectorAll("[data-usage-toggle]").forEach(function(btn){
+        btn.addEventListener("click",function(){
+          var key=btn.getAttribute("data-usage-toggle");
+          state.localUsageCollapsed=state.localUsageCollapsed||{};
+          state.localUsageCollapsed[key]=!state.localUsageCollapsed[key];
+          renderLocalUsage();
+        });
+      });
+      var collapse=host.querySelector("[data-usage-collapse-all]");
+      if(collapse) collapse.addEventListener("click",function(){
+        state.localUsageCollapsed={};
+        (groups||[]).forEach(function(g,idx){ state.localUsageCollapsed[localUsageGroupKey(g,idx)]=true; });
+        renderLocalUsage();
+      });
+      var expand=host.querySelector("[data-usage-expand-all]");
+      if(expand) expand.addEventListener("click",function(){ state.localUsageCollapsed={}; renderLocalUsage(); });
     }
     function renderLocalUsage(){
       var host=byId("localUsageBox"); if(!host) return;
@@ -801,16 +856,21 @@ const APP_HTML = String.raw`<!doctype html>
       var source='<div class="usage-source"><strong>数据来源：本地 sub2api</strong> · 读取 /api/v1/admin/accounts 后按当前上游匹配；这里列的是 sub2api 内保存的账号 / Key，不是上游后台 Key 列表。</div>';
       var note='<div class="usage-note"><strong>'+esc(displayHost(u.url))+'</strong> · '+(legacy?('有 '+legacy+' 个旧账号通过 Base URL / 备注 / 账号名称识别。'):'新导入账号会写入监控标记，统计更准确。')+'</div>';
       if(!accounts.length){ host.innerHTML=top+source+note+'<div class="usage-empty">当前上游还没有匹配到本地 sub2api 账号 / Key。创建并导入后，这里会按每个本地分组列出数量和明细。</div>'; return; }
-      var html=groups.map(function(g){
+      var actions='<div class="usage-actions"><button type="button" class="btn small ghost" data-usage-collapse-all>折叠全部</button><button type="button" class="btn small ghost" data-usage-expand-all>展开全部</button></div>';
+      var html=groups.map(function(g,idx){
         var accs=g.accounts||[];
         var title=esc(g.name||('分组 '+g.id));
         var groupId=(g.id!=null&&String(g.id)!=="__ungrouped")?'<span class="faint">本地分组 #'+esc(g.id)+'</span>':'<span class="faint">未分组</span>';
         var platform=g.platform?platformBadge(g.platform):'';
         var rate=g.rate_multiplier!=null&&g.rate_multiplier!==""?'<span class="badge">分组倍率 ×'+esc(g.rate_multiplier)+'</span>':'';
+        var key=localUsageGroupKey(g,idx);
+        var collapsed=!!(state.localUsageCollapsed&&state.localUsageCollapsed[key]);
+        var toggle='<button type="button" class="usage-toggle" data-usage-toggle="'+escAttr(key)+'" aria-expanded="'+(collapsed?'false':'true')+'"><span class="usage-caret">'+(collapsed?'▶':'▼')+'</span>'+esc(collapsed?'展开':'折叠')+'</button>';
         var body=accs.map(localUsageAccountCard).join('');
-        return '<div class="usage-group"><div class="usage-group-head"><div class="usage-group-title"><strong title="'+escAttr(g.name||'')+'">'+title+'</strong><span class="badge good">'+accs.length+' 个本地 Key</span></div><div class="usage-group-meta">'+groupId+platform+rate+'</div></div><div class="usage-accounts">'+body+'</div></div>';
+        return '<div class="usage-group'+(collapsed?' collapsed':'')+'"><div class="usage-group-head"><div class="usage-group-title"><strong title="'+escAttr(g.name||'')+'">'+title+'</strong>'+toggle+'<span class="badge good">'+accs.length+' 个本地 Key</span></div><div class="usage-group-meta">'+groupId+platform+rate+'</div></div><div class="usage-accounts">'+body+'</div></div>';
       }).join('');
-      host.innerHTML=top+source+note+'<div class="usage-list">'+html+'</div>';
+      host.innerHTML=top+source+note+actions+'<div class="usage-list">'+html+'</div>';
+      bindLocalUsageControls(host,groups);
     }
 
 
@@ -887,7 +947,7 @@ const APP_HTML = String.raw`<!doctype html>
       if(p.kind==="newapi"&&!p.userId){ addLog("校验","NewAPI 上游需要填写 user_id"); return; }
       addLog("保存","写入上游配置: "+(p.name||p.url)+" ("+(p.kind==="newapi"?"NewAPI":"sub2api")+")");
       var r=await api("/api/upstreams",{method:"POST",body:p}); state.config=r.config;
-      state.selectedUpstreamId=state.config.upstreams[state.config.upstreams.length-1].id; state.localUsage=null; state.localUsageUpstreamId="";
+      state.selectedUpstreamId=state.config.upstreams[state.config.upstreams.length-1].id; state.localUsage=null; state.localUsageCollapsed={}; state.localUsageUpstreamId="";
       byId("upstreamName").value=""; byId("upstreamUrl").value=""; byId("upstreamToken").value=""; if(byId("upstreamRefreshToken")) byId("upstreamRefreshToken").value=""; if(byId("upstreamUserId")) byId("upstreamUserId").value="";
       renderAll(); await refreshAll();
     }
@@ -1629,7 +1689,7 @@ function buildLocalUsageReport(upstream, accounts, localGroups) {
   for (const account of accounts || []) {
     const match = matchLocalAccountToUpstream(account, upstream);
     if (!match.matched) continue;
-    const summary = localAccountSummary(account, match);
+    const summary = localAccountSummary(account, match, upstream);
     matchedAccounts.push(summary);
     if ((match.reasons || []).includes("extra")) marked += 1;
     else legacy += 1;
@@ -1673,10 +1733,11 @@ function buildLocalUsageReport(upstream, accounts, localGroups) {
   };
 }
 
-function localAccountSummary(account, match) {
+function localAccountSummary(account, match, upstream) {
   const credentials = account?.credentials && typeof account.credentials === "object" ? account.credentials : {};
   const status = account?.credentials_status && typeof account.credentials_status === "object" ? account.credentials_status : {};
   const notes = firstText(account?.notes);
+  const upstreamGroup = localUsageUpstreamGroupInfo(account, upstream);
   return {
     id: firstDefined(account?.id, account?.ID, ""),
     name: firstText(account?.name, account?.Name),
@@ -1692,7 +1753,92 @@ function localAccountSummary(account, match) {
     base_url: firstText(credentials.base_url, credentials.baseURL, credentials.url, credentials.endpoint),
     has_api_key: Boolean(status.has_api_key || status.has_key || credentials.api_key || credentials.key || credentials.token),
     group_ids: localAccountGroupIds(account),
+    ...upstreamGroup,
     match,
+  };
+}
+
+function localUsageUpstreamGroupInfo(account, upstream) {
+  const extra = account?.extra && typeof account.extra === "object" ? account.extra : {};
+  const marker = objectFromMaybeJson(extra.upstream_monitor || extra.upstreamMonitor || extra.monitor_upstream);
+  const markerGroupId = firstText(marker?.upstream_group_id, marker?.upstreamGroupId, marker?.group_id, marker?.groupId);
+  if (markerGroupId) {
+    return {
+      upstream_group_id: markerGroupId,
+      upstream_group_name: firstText(marker?.upstream_group_name, marker?.upstreamGroupName, marker?.group_name, marker?.groupName),
+      upstream_group_rate: firstDefined(marker?.upstream_group_rate, marker?.upstreamGroupRate, marker?.rate_multiplier, marker?.rateMultiplier, ""),
+      upstream_group_source: "marker",
+      upstream_group_ambiguous: false,
+    };
+  }
+  return inferLocalUsageUpstreamGroup(account, upstream) || {
+    upstream_group_id: "",
+    upstream_group_name: "",
+    upstream_group_rate: "",
+    upstream_group_source: "unknown",
+    upstream_group_ambiguous: false,
+  };
+}
+
+function inferLocalUsageUpstreamGroup(account, upstream) {
+  const groups = Array.isArray(upstream?.snapshot?.groups) ? upstream.snapshot.groups : [];
+  if (!groups.length) return null;
+  const upstreamUrl = upstream?.url || "";
+  const name = firstText(account?.name, account?.Name).toLowerCase();
+  const accountRate = firstDefined(account?.rate_multiplier, account?.rateMultiplier, null);
+  const accountRateComparable = accountRate === null || accountRate === undefined || accountRate === "" ? "" : rateComparable(accountRate);
+  const accountPlatform = normalizeAccountPlatform(firstText(account?.platform));
+  const candidates = [];
+  for (const group of groups) {
+    const groupPlatform = normalizeAccountPlatform(firstText(group?.platform));
+    if (accountPlatform && groupPlatform && accountPlatform !== groupPlatform) continue;
+    const rates = uniqueRateCandidates(group);
+    let score = 0;
+    let source = "";
+    for (const rate of rates) {
+      const prefix = `${autoKeyNameBase(upstreamUrl, rate)}-`.toLowerCase();
+      if (prefix.length > 2 && name.startsWith(prefix)) {
+        score = Math.max(score, 90);
+        source = "inferred_name";
+      }
+    }
+    if (!score && accountRateComparable && rates.some((rate) => rateComparable(rate) === accountRateComparable)) {
+      score = 60;
+      source = "inferred_rate";
+    }
+    if (score) candidates.push({ group, score, source });
+  }
+  candidates.sort((a, b) => (b.score - a.score) || String(a.group?.name || "").localeCompare(String(b.group?.name || ""), "zh-CN"));
+  if (!candidates.length) return null;
+  const topScore = candidates[0].score;
+  const top = candidates.filter((item) => item.score === topScore);
+  if (top.length === 1) return localUsageGroupInfoFromUpstreamGroup(top[0].group, top[0].source, false);
+  return {
+    upstream_group_id: top.map((item) => firstText(item.group?.id)).filter(Boolean).join(" / "),
+    upstream_group_name: "多个同倍率候选",
+    upstream_group_rate: firstDefined(top[0].group?.effective_rate_multiplier, top[0].group?.rate_multiplier, top[0].group?.base_rate_multiplier, ""),
+    upstream_group_source: "inferred_multiple",
+    upstream_group_ambiguous: true,
+  };
+}
+
+function uniqueRateCandidates(group) {
+  const out = [];
+  for (const value of [group?.rate_multiplier, group?.effective_rate_multiplier, group?.base_rate_multiplier]) {
+    if (value === undefined || value === null || value === "") continue;
+    const key = rateComparable(value);
+    if (!out.some((item) => rateComparable(item) === key)) out.push(value);
+  }
+  return out;
+}
+
+function localUsageGroupInfoFromUpstreamGroup(group, source, ambiguous) {
+  return {
+    upstream_group_id: firstText(group?.id),
+    upstream_group_name: firstText(group?.name),
+    upstream_group_rate: firstDefined(group?.effective_rate_multiplier, group?.rate_multiplier, group?.base_rate_multiplier, ""),
+    upstream_group_source: source,
+    upstream_group_ambiguous: Boolean(ambiguous),
   };
 }
 
