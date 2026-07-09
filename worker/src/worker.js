@@ -215,6 +215,32 @@ const APP_HTML = String.raw`<!doctype html>
     .check-row input{width:auto}
     .check-row span:first-of-type{flex:1}
 
+    /* local usage */
+    .usage-panel{display:flex;flex-direction:column;gap:10px}
+    .usage-top{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .usage-stat{padding:10px 10px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,rgba(52,211,153,.07),transparent),var(--bg-soft)}
+    .usage-stat b{display:block;font-size:18px;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--txt)}
+    .usage-stat span{display:block;margin-top:2px;font-size:10.5px;color:var(--txt-faint)}
+    .usage-note{font-size:11.5px;color:var(--txt-faint);line-height:1.45}
+    .usage-note strong{color:var(--txt-dim)}
+    .usage-list{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto;padding-right:2px}
+    .usage-group{border:1px solid var(--line);border-radius:13px;background:var(--bg-soft);overflow:hidden}
+    .usage-group-head{display:flex;align-items:center;gap:8px;padding:10px 11px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.015)}
+    .usage-group-head strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+    .usage-group-head .badge{flex:0 0 auto}
+    .usage-accounts{display:flex;flex-direction:column}
+    .usage-account{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 11px;border-top:1px solid rgba(155,200,188,.08)}
+    .usage-account:first-child{border-top:0}
+    .usage-account:hover{background:rgba(52,211,153,.045)}
+    .usage-account strong{display:block;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .usage-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:3px;font-size:10.8px;color:var(--txt-faint)}
+    .usage-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+    .usage-match{font-size:10.5px;color:var(--txt-faint);max-width:118px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+    .usage-empty{padding:18px 10px;text-align:center;border:1px dashed var(--line-2);border-radius:13px;background:var(--bg-soft);color:var(--txt-faint);font-size:12.5px;line-height:1.6}
+    .usage-loading{position:relative;overflow:hidden}
+    .usage-loading::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:usageShimmer 1.2s infinite}
+    @keyframes usageShimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
     /* logs */
     .logs{font-family:var(--mono);font-size:11.5px;line-height:1.7;max-height:180px;overflow:auto;background:var(--bg-soft);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
     .log-line{display:flex;gap:9px;padding:1px 0}
@@ -361,6 +387,10 @@ const APP_HTML = String.raw`<!doctype html>
           <div id="selectedInfo" class="selected-info"><div class="empty">请选择一个上游分组</div></div>
         </div>
         <div class="card">
+          <h2>本地使用情况 <span class="tag">按当前上游</span><span class="right"><button id="refreshLocalUsageBtn" class="btn small ghost" title="重新统计当前上游在本地 sub2api 的使用情况">刷新</button></span></h2>
+          <div id="localUsageBox" class="usage-panel"><div class="usage-empty">选择上游后自动统计本地账号使用情况</div></div>
+        </div>
+        <div class="card">
           <h2>创建参数 <span class="tag">创建账号时使用</span></h2>
           <div class="row2">
             <label class="field"><span>创建数量</span><input id="setCreateCount" type="number" min="1"></label>
@@ -417,7 +447,7 @@ const APP_HTML = String.raw`<!doctype html>
     "use strict";
     var state = {
       config: null, selectedUpstreamId: "", selectedGroupId: "",
-      localGroups: [], localGroupIds: [], rateSortDir: "asc",
+      localGroups: [], localGroupIds: [], localUsage: null, localUsageLoading: false, localUsageUpstreamId: "", localUsageSeq: 0, rateSortDir: "asc",
       busy: false, autoTimer: null, autoRemaining: 0, historyOpen: false
     };
 
@@ -594,10 +624,24 @@ const APP_HTML = String.raw`<!doctype html>
       return m;
     }
 
+    function ensureSelectedUpstream(){
+      var us=(state.config&&state.config.upstreams)||[];
+      if(!us.length){ state.selectedUpstreamId=""; return null; }
+      var found=us.find(function(u){ return u.id===state.selectedUpstreamId; });
+      if(!found){ state.selectedUpstreamId=us[0].id; state.selectedGroupId=""; return us[0]; }
+      return found;
+    }
+    function selectUpstream(id){
+      if(!id||id===state.selectedUpstreamId) return;
+      state.selectedUpstreamId=id; state.selectedGroupId=""; state.localUsage=null; state.localUsageUpstreamId="";
+      renderAll(); loadLocalUsage(false);
+    }
+
     /* ---------- render ---------- */
     function renderAll(){
       if(!state.config) return;
-      renderMetrics(); renderTabs(); renderBalances(); renderTable(); renderSelected(); renderLocalGroups();
+      ensureSelectedUpstream();
+      renderMetrics(); renderTabs(); renderBalances(); renderTable(); renderSelected(); renderLocalUsage(); renderLocalGroups();
     }
     function renderMetrics(){
       var us=state.config.upstreams||[]; var showHidden=byId("showHidden").checked;
@@ -627,7 +671,7 @@ const APP_HTML = String.raw`<!doctype html>
         var mark=u.mark?'<span class="tab-mark">'+esc(u.mark)+'</span>':"";
         return '<button class="tab'+active+marked+'" data-tab="'+escAttr(u.id)+'"><span class="dot"></span><span class="tab-name">'+esc(u.name||u.url)+'</span>'+mark+upstreamKindBadge(u)+tokenExpiryBadge(u)+balanceBadge(u.balance,true)+'<span class="badge">'+count+'</span></button>';
       }).join("");
-      host.querySelectorAll("[data-tab]").forEach(function(b){ b.addEventListener("click",function(){ state.selectedUpstreamId=b.getAttribute("data-tab"); state.selectedGroupId=""; renderAll(); }); });
+      host.querySelectorAll("[data-tab]").forEach(function(b){ b.addEventListener("click",function(){ selectUpstream(b.getAttribute("data-tab")); }); });
     }
     function renderBalances(){
       var host=byId("balanceList"); if(!host) return; var us=state.config.upstreams||[];
@@ -638,7 +682,7 @@ const APP_HTML = String.raw`<!doctype html>
         return '<div class="balance-row'+active+'" role="button" tabindex="0" data-balance="'+escAttr(u.id)+'"><span class="balance-main"><span class="balance-title"><strong>'+esc(u.name||u.url)+'</strong>'+mark+upstreamKindBadge(u)+tokenExpiryBadge(u)+'</span><span class="balance-meta"><a class="balance-url" href="'+escAttr(upstreamDashboardUrl(u))+'" target="_blank" rel="noopener noreferrer">'+esc(displayHost(u.url))+'</a></span></span><span class="balance-side">'+balanceBadge(u.balance,true)+'<span class="balance-time">'+esc(shortTime(u.balance&&u.balance.refreshedAt))+'</span></span></div>';
       }).join("");
       host.querySelectorAll("[data-balance]").forEach(function(el){
-        el.addEventListener("click",function(){ state.selectedUpstreamId=el.getAttribute("data-balance"); state.selectedGroupId=""; renderAll(); });
+        el.addEventListener("click",function(){ selectUpstream(el.getAttribute("data-balance")); });
       });
       host.querySelectorAll(".balance-url").forEach(function(a){ a.addEventListener("click",function(e){ e.stopPropagation(); }); });
     }
@@ -705,6 +749,49 @@ const APP_HTML = String.raw`<!doctype html>
         });
       });
     }
+    function localUsageMatchLabel(a){
+      var r=(a&&a.match&&a.match.reasons&&a.match.reasons[0])||"";
+      if(r==="extra") return "标记匹配";
+      if(r==="base_url") return "Base URL";
+      if(r==="notes") return "备注匹配";
+      if(r==="name") return "名称匹配";
+      return "兼容匹配";
+    }
+    function renderLocalUsage(){
+      var host=byId("localUsageBox"); if(!host) return;
+      var u=currentUpstream();
+      if(!u){ host.innerHTML='<div class="usage-empty">保存上游后会显示本地使用情况</div>'; return; }
+      if(state.localUsageLoading&&state.localUsageUpstreamId===u.id){
+        host.innerHTML='<div class="usage-top usage-loading"><div class="usage-stat"><b>…</b><span>API Key</span></div><div class="usage-stat"><b>…</b><span>本地分组</span></div><div class="usage-stat"><b>…</b><span>标记匹配</span></div></div><div class="usage-empty usage-loading">正在统计 '+esc(displayHost(u.url))+' 的本地账号使用情况…</div>';
+        return;
+      }
+      var data=state.localUsage;
+      if(!data||data.upstreamId!==u.id){ host.innerHTML='<div class="usage-empty">点击刷新或切换上游后自动统计本地使用情况</div>'; return; }
+      if(data.error){ host.innerHTML='<div class="usage-empty"><strong>统计失败</strong><br>'+esc(data.error)+'</div>'; return; }
+      var groups=data.groups||[], accounts=data.accounts||[], summary=data.summary||{};
+      var exact=Number(summary.marked||0), legacy=Number(summary.legacy||0);
+      var top='<div class="usage-top"><div class="usage-stat"><b>'+esc(summary.account_count||0)+'</b><span>API Key</span></div><div class="usage-stat"><b>'+esc(summary.group_count||0)+'</b><span>本地分组</span></div><div class="usage-stat"><b>'+esc(exact)+'</b><span>标记匹配</span></div></div>';
+      var note='<div class="usage-note"><strong>'+esc(displayHost(u.url))+'</strong> · '+(legacy?('有 '+legacy+' 个旧账号通过 base_url / 备注 / 名称识别。'):'新导入账号会写入稳定标记，统计更准确。')+'</div>';
+      if(!accounts.length){ host.innerHTML=top+note+'<div class="usage-empty">当前上游还没有匹配到本地账号。创建并导入后，这里会按本地分组显示数量和明细。</div>'; return; }
+      var html=groups.map(function(g){
+        var accs=g.accounts||[];
+        var title=esc(g.name||('分组 '+g.id));
+        var platform=g.platform?platformBadge(g.platform):'';
+        var rate=g.rate_multiplier!=null?'<span class="badge">×'+esc(g.rate_multiplier)+'</span>':'';
+        var body=accs.map(function(a){
+          var status=a.status?statusBadge(a.status):'<span class="badge">-</span>';
+          var key=a.has_api_key?'<span class="badge good">API Key</span>':'<span class="badge">Key ?</span>';
+          var rateHtml=a.rate_multiplier!=null?'<span class="badge">×'+esc(a.rate_multiplier)+'</span>':'';
+          var cc=Number(a.current_concurrency||0); var conc=Number(a.concurrency||0);
+          var concText=conc?('<span class="faint">并发 '+cc+'/'+conc+'</span>'):(cc?'<span class="faint">并发 '+cc+'</span>':'');
+          var notes=a.notes?'<span class="faint" title="'+escAttr(a.notes)+'">备注</span>':'';
+          return '<div class="usage-account"><div><strong title="'+escAttr(a.name||'')+'">'+esc(a.name||('账号 '+a.id))+'</strong><div class="usage-meta"><span class="faint">#'+esc(a.id)+'</span>'+platformBadge(a.platform||'-')+'<span class="badge">'+esc(a.type||'-')+'</span>'+status+rateHtml+concText+notes+'</div></div><div class="usage-side">'+key+'<span class="usage-match" title="'+escAttr((a.match&&a.match.reasons||[]).join(' / '))+'">'+esc(localUsageMatchLabel(a))+'</span></div></div>';
+        }).join('');
+        return '<div class="usage-group"><div class="usage-group-head"><strong title="'+escAttr(g.name||'')+'">'+title+'</strong>'+platform+rate+'<span class="badge good">'+accs.length+' 个</span></div><div class="usage-accounts">'+body+'</div></div>';
+      }).join('');
+      host.innerHTML=top+note+'<div class="usage-list">'+html+'</div>';
+    }
+
 
     function syncUpstreamKindForm(){
       var kind=(byId("upstreamKind")&&byId("upstreamKind").value)||"sub2api";
@@ -779,7 +866,7 @@ const APP_HTML = String.raw`<!doctype html>
       if(p.kind==="newapi"&&!p.userId){ addLog("校验","NewAPI 上游需要填写 user_id"); return; }
       addLog("保存","写入上游配置: "+(p.name||p.url)+" ("+(p.kind==="newapi"?"NewAPI":"sub2api")+")");
       var r=await api("/api/upstreams",{method:"POST",body:p}); state.config=r.config;
-      state.selectedUpstreamId=state.config.upstreams[state.config.upstreams.length-1].id;
+      state.selectedUpstreamId=state.config.upstreams[state.config.upstreams.length-1].id; state.localUsage=null; state.localUsageUpstreamId="";
       byId("upstreamName").value=""; byId("upstreamUrl").value=""; byId("upstreamToken").value=""; if(byId("upstreamRefreshToken")) byId("upstreamRefreshToken").value=""; if(byId("upstreamUserId")) byId("upstreamUserId").value="";
       renderAll(); await refreshAll();
     }
@@ -885,6 +972,19 @@ const APP_HTML = String.raw`<!doctype html>
 
     /* ---------- keys / import ---------- */
     async function loadLocalGroups(){ addLog("本地","读取 sub2api 本地分组"); var r=await api("/api/sub2api/groups"); state.localGroups=r.groups||[]; addLog("本地","读取到 "+state.localGroups.length+" 个分组"); renderLocalGroups(); }
+    async function loadLocalUsage(force){
+      var u=currentUpstream(); if(!u){ state.localUsage=null; renderLocalUsage(); return; }
+      if(!force&&state.localUsage&&state.localUsage.upstreamId===u.id){ renderLocalUsage(); return; }
+      var seq=++state.localUsageSeq; state.localUsageLoading=true; state.localUsageUpstreamId=u.id; renderLocalUsage();
+      try{
+        var r=await api("/api/upstreams/"+encodeURIComponent(u.id)+"/local-usage",{silent:true});
+        if(seq!==state.localUsageSeq) return;
+        state.localUsage=r.usage||{upstreamId:u.id,error:"返回格式异常"}; state.localUsageLoading=false; renderLocalUsage();
+      }catch(e){
+        if(seq!==state.localUsageSeq) return;
+        state.localUsage={upstreamId:u.id,error:e.message||String(e)}; state.localUsageLoading=false; renderLocalUsage();
+      }
+    }
     async function createImport(){
       if(!state.selectedUpstreamId||!state.selectedGroupId){ addLog("校验","请选择一个上游分组"); return; }
       if(!state.localGroupIds.length){ addLog("校验","请选择至少一个本地分组"); return; }
@@ -896,6 +996,7 @@ const APP_HTML = String.raw`<!doctype html>
       var r=await api("/api/create-import",{method:"POST",body:{upstream_id:state.selectedUpstreamId,upstream_group_id:String(state.selectedGroupId),local_group_ids:state.localGroupIds,settings:collectSettings()}});
       (r.logs||[]).forEach(function(it){ addLog(it.stage||"执行",it.message||""); });
       addLog("结果","创建 key "+((r.created||[]).length)+" 个");
+      await loadLocalUsage(true);
     }
     async function fixLocalPlatform(){
       if(!state.localGroupIds.length){ addLog("校验","请选择至少一个本地分组"); return; }
@@ -967,7 +1068,7 @@ const APP_HTML = String.raw`<!doctype html>
     async function loadConfig(){
       var r=await api("/api/config"); state.config=r.config;
       if(!state.selectedUpstreamId&&state.config.upstreams.length) state.selectedUpstreamId=state.config.upstreams[0].id;
-      syncForms(); renderAll();
+      syncForms(); renderAll(); loadLocalUsage(false);
     }
     async function bootstrap(){
       try{ var iv=localStorage.getItem("monitor_theme"); if(iv) document.documentElement.setAttribute("data-theme",iv); }catch(e){}
@@ -995,6 +1096,7 @@ const APP_HTML = String.raw`<!doctype html>
       byId("saveDefaultsBtn").addEventListener("click",saveDefaults);
       byId("setPlatform").addEventListener("input",syncModelMappingHint);
       byId("loadLocalGroupsBtn").addEventListener("click",loadLocalGroups);
+      byId("refreshLocalUsageBtn").addEventListener("click",function(){ loadLocalUsage(true); });
       byId("createImportBtn").addEventListener("click",createImport);
       byId("fixLocalPlatformBtn").addEventListener("click",fixLocalPlatform);
       byId("clearSelectionBtn").addEventListener("click",function(){ state.selectedGroupId=""; renderAll(); });
@@ -1104,6 +1206,10 @@ async function route(request, env) {
     if (url.pathname.match(/^\/api\/upstreams\/[^/]+\/refresh$/) && request.method === "POST") {
       const [, , , upstreamId] = url.pathname.split("/");
       return handleRefreshUpstream(env, decodeURIComponent(upstreamId));
+    }
+    if (url.pathname.match(/^\/api\/upstreams\/[^/]+\/local-usage$/) && request.method === "GET") {
+      const [, , , upstreamId] = url.pathname.split("/");
+      return handleUpstreamLocalUsage(env, decodeURIComponent(upstreamId));
     }
     if (url.pathname.match(/^\/api\/upstreams\/[^/]+$/) && request.method === "PATCH") return handlePatchUpstream(request, env, url.pathname.split("/").pop());
     if (url.pathname.match(/^\/api\/upstreams\/[^/]+$/) && request.method === "DELETE") return handleDeleteUpstream(env, url.pathname.split("/").pop());
@@ -1463,6 +1569,205 @@ async function refreshUpstreamSnapshot(upstream, env, refreshedAt) {
   }
 }
 
+async function handleUpstreamLocalUsage(env, upstreamId) {
+  const config = await loadConfig(env);
+  const upstream = findUpstream(config, upstreamId);
+  const [localGroups, accounts] = await Promise.all([
+    fetchSub2apiGroups(config, env),
+    fetchSub2apiAccounts(config, env),
+  ]);
+  return json({ usage: buildLocalUsageReport(upstream, accounts, localGroups) });
+}
+
+async function fetchSub2apiAccounts(config, env) {
+  const out = [];
+  for (let page = 1; page <= 200; page += 1) {
+    const data = await sub2apiRequest(config, env, "GET", `/api/v1/admin/accounts?page=${page}&page_size=100&sort_by=name&sort_order=asc`);
+    const items = normalizeSub2apiAccountList(data);
+    out.push(...items);
+    const total = Number(data?.total ?? data?.total_count ?? data?.count);
+    if (Number.isFinite(total) && out.length >= total) break;
+    if (!items.length || items.length < 100) break;
+  }
+  return out;
+}
+
+function normalizeSub2apiAccountList(data) {
+  if (Array.isArray(data)) return data.filter(Boolean);
+  const source = data && typeof data === "object" ? (data.items || data.accounts || data.data || data.list || data.records || []) : [];
+  return Array.isArray(source) ? source.filter(Boolean) : [];
+}
+
+function buildLocalUsageReport(upstream, accounts, localGroups) {
+  const groupMap = new Map((localGroups || []).map((group) => [String(group.id), group]));
+  const groupBuckets = new Map();
+  const matchedAccounts = [];
+  let marked = 0;
+  let legacy = 0;
+
+  for (const account of accounts || []) {
+    const match = matchLocalAccountToUpstream(account, upstream);
+    if (!match.matched) continue;
+    const summary = localAccountSummary(account, match);
+    matchedAccounts.push(summary);
+    if ((match.reasons || []).includes("extra")) marked += 1;
+    else legacy += 1;
+
+    const groupIds = localAccountGroupIds(account);
+    for (const groupId of groupIds.length ? groupIds : ["__ungrouped"]) {
+      const key = String(groupId);
+      if (!groupBuckets.has(key)) {
+        const group = groupMap.get(key) || (key === "__ungrouped" ? { id: key, name: "未分组", platform: "", rate_multiplier: "" } : { id: key, name: `分组 ${key}`, platform: "", rate_multiplier: "" });
+        groupBuckets.set(key, {
+          id: group.id,
+          name: group.name || `分组 ${key}`,
+          platform: group.platform || "",
+          rate_multiplier: group.rate_multiplier ?? "",
+          accounts: [],
+        });
+      }
+      groupBuckets.get(key).accounts.push(summary);
+    }
+  }
+
+  const groups = Array.from(groupBuckets.values()).map((group) => ({
+    ...group,
+    accounts: group.accounts.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "zh-CN")),
+  })).sort((a, b) => (b.accounts.length - a.accounts.length) || String(a.name || "").localeCompare(String(b.name || ""), "zh-CN"));
+
+  return {
+    upstreamId: upstream.id,
+    upstreamName: upstream.name || upstream.url || "",
+    upstreamUrl: upstream.url || "",
+    refreshedAt: new Date().toISOString(),
+    summary: {
+      account_count: matchedAccounts.length,
+      group_count: groups.length,
+      marked,
+      legacy,
+      scanned: (accounts || []).length,
+    },
+    groups,
+    accounts: matchedAccounts.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "zh-CN")),
+  };
+}
+
+function localAccountSummary(account, match) {
+  const credentials = account?.credentials && typeof account.credentials === "object" ? account.credentials : {};
+  const status = account?.credentials_status && typeof account.credentials_status === "object" ? account.credentials_status : {};
+  const notes = firstText(account?.notes);
+  return {
+    id: firstDefined(account?.id, account?.ID, ""),
+    name: firstText(account?.name, account?.Name),
+    notes,
+    platform: firstText(account?.platform),
+    type: firstText(account?.type),
+    status: firstText(account?.status),
+    rate_multiplier: firstDefined(account?.rate_multiplier, account?.rateMultiplier, null),
+    concurrency: Number(firstDefined(account?.concurrency, 0)) || 0,
+    current_concurrency: Number(firstDefined(account?.current_concurrency, account?.currentConcurrency, 0)) || 0,
+    priority: Number(firstDefined(account?.priority, 0)) || 0,
+    load_factor: firstDefined(account?.load_factor, account?.loadFactor, null),
+    base_url: firstText(credentials.base_url, credentials.baseURL, credentials.url, credentials.endpoint),
+    has_api_key: Boolean(status.has_api_key || status.has_key || credentials.api_key || credentials.key || credentials.token),
+    group_ids: localAccountGroupIds(account),
+    match,
+  };
+}
+
+function localAccountGroupIds(account) {
+  const ids = [];
+  const add = (value) => {
+    if (value === undefined || value === null || value === "") return;
+    const text = String(value);
+    if (!ids.includes(text)) ids.push(text);
+  };
+  for (const value of Array.isArray(account?.group_ids) ? account.group_ids : []) add(value);
+  for (const value of Array.isArray(account?.groupIds) ? account.groupIds : []) add(value);
+  if (account?.group_id !== undefined) add(account.group_id);
+  for (const group of Array.isArray(account?.groups) ? account.groups : []) add(firstDefined(group?.id, group?.ID, group));
+  for (const group of Array.isArray(account?.account_groups) ? account.account_groups : []) add(firstDefined(group?.group_id, group?.groupId, group?.id));
+  return ids;
+}
+
+function matchLocalAccountToUpstream(account, upstream) {
+  const reasons = [];
+  let score = 0;
+  const credentials = account?.credentials && typeof account.credentials === "object" ? account.credentials : {};
+  const extra = account?.extra && typeof account.extra === "object" ? account.extra : {};
+  const marker = objectFromMaybeJson(extra.upstream_monitor || extra.upstreamMonitor || extra.monitor_upstream);
+  const upstreamUrl = upstream?.url || "";
+  const upstreamHost = hostOf(upstreamUrl);
+  const comparableUpstreamUrl = comparableLocalUsageUrl(upstreamUrl);
+
+  if (marker && typeof marker === "object") {
+    if (String(marker.upstream_id || marker.upstreamId || "") === String(upstream?.id || "")) {
+      reasons.push("extra");
+      score = Math.max(score, 100);
+    }
+    const markerUrl = firstText(marker.upstream_url, marker.upstreamUrl, marker.url);
+    if (markerUrl && comparableLocalUsageUrl(markerUrl) === comparableUpstreamUrl) {
+      if (!reasons.includes("extra")) reasons.push("extra");
+      score = Math.max(score, 95);
+    }
+  }
+
+  const baseUrl = firstText(credentials.base_url, credentials.baseURL, credentials.url, credentials.endpoint);
+  if (baseUrl && comparableLocalUsageUrl(baseUrl) === comparableUpstreamUrl) {
+    reasons.push("base_url");
+    score = Math.max(score, 85);
+  }
+
+  const notes = firstText(account?.notes).toLowerCase();
+  if (notes) {
+    const normalizedNotes = notes.replace(/\/+$/g, "");
+    if ((upstreamHost && normalizedNotes.includes(upstreamHost.toLowerCase())) || (upstreamUrl && normalizedNotes.includes(normalizeSiteUrl(upstreamUrl).toLowerCase()))) {
+      reasons.push("notes");
+      score = Math.max(score, 70);
+    }
+  }
+
+  const prefix = `${domainLabel(upstreamUrl)}-`.toLowerCase();
+  const name = firstText(account?.name).toLowerCase();
+  if (prefix.length > 1 && name.startsWith(prefix)) {
+    reasons.push("name");
+    score = Math.max(score, 55);
+  }
+
+  return { matched: score > 0, score, reasons: Array.from(new Set(reasons)) };
+}
+
+function objectFromMaybeJson(value) {
+  if (!value) return null;
+  if (typeof value === "object" && !Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    const parsed = safeJsonParse(value);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+  }
+  return null;
+}
+
+function comparableLocalUsageUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(normalizeSiteUrl(raw));
+    let path = url.pathname.replace(/\/+$/g, "");
+    path = path.replace(/\/(api\/v1|v1)$/i, "");
+    return `${url.protocol}//${url.host}${path}`.toLowerCase();
+  } catch {
+    return raw.replace(/\/+$/g, "").toLowerCase();
+  }
+}
+
+function hostOf(value) {
+  try {
+    return new URL(normalizeSiteUrl(value)).host;
+  } catch {
+    return "";
+  }
+}
+
 async function handleSub2apiGroups(env) {
   const config = await loadConfig(env);
   const groups = await fetchSub2apiGroups(config, env);
@@ -1574,6 +1879,7 @@ async function handleCreateAndImport(request, env) {
   if (configuredModelMapping && !modelMapping) logs.push(logLine("参数", `model_mapping 与 ${accountPlatform} 平台不匹配，已跳过`));
 
   const passthroughExtra = buildAccountExtra(accountPlatform, settings);
+  const monitorExtra = buildUpstreamMonitorExtra(upstream, upstreamGroup);
   const accounts = created.map((item) => ({
     name: item.name,
     notes,
@@ -1584,7 +1890,7 @@ async function handleCreateAndImport(request, env) {
       api_key: item.key,
       ...(modelMapping ? { model_mapping: modelMapping } : {}),
     },
-    extra: passthroughExtra,
+    extra: { ...passthroughExtra, ...monitorExtra },
     concurrency: clampInt(settings.concurrency, 0, 100000),
     priority: clampInt(settings.priority, 0, 100000),
     load_factor: clampInt(settings.load_factor, 1, 10000),
@@ -2231,6 +2537,21 @@ function findUpstream(config, upstreamId) {
 function buildAccountExtra(platform, settings) {
   if (normalizeAccountPlatform(platform) === "openai" && settings.openai_passthrough !== false) return { openai_passthrough: true };
   return {};
+}
+
+function buildUpstreamMonitorExtra(upstream, upstreamGroup) {
+  return {
+    upstream_monitor: {
+      upstream_id: upstream?.id || "",
+      upstream_name: upstream?.name || "",
+      upstream_url: upstream?.url || "",
+      upstream_kind: getUpstreamKind(upstream),
+      upstream_group_id: upstreamGroup?.id == null ? "" : String(upstreamGroup.id),
+      upstream_group_name: upstreamGroup?.name || "",
+      upstream_group_rate: upstreamGroup?.rate_multiplier == null ? "" : String(upstreamGroup.rate_multiplier),
+      imported_at: new Date().toISOString(),
+    },
+  };
 }
 
 function sanitizeImportDefaults(raw) {
