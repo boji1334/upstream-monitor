@@ -150,6 +150,7 @@ const APP_HTML = String.raw`<!doctype html>
 
     .layout{flex:1;display:grid;grid-template-columns:320px minmax(0,1fr) 340px;gap:14px;padding:14px;overflow:hidden}
     .col{display:flex;flex-direction:column;gap:14px;overflow:auto;padding-right:2px}
+    .col-right{min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable;padding-bottom:64px}
     .col-center{overflow:hidden}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
     .card.flush{padding:0;overflow:hidden}
@@ -223,19 +224,23 @@ const APP_HTML = String.raw`<!doctype html>
     .usage-stat span{display:block;margin-top:2px;font-size:10.5px;color:var(--txt-faint)}
     .usage-note{font-size:11.5px;color:var(--txt-faint);line-height:1.45}
     .usage-note strong{color:var(--txt-dim)}
-    .usage-list{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto;padding-right:2px}
-    .usage-group{border:1px solid var(--line);border-radius:13px;background:var(--bg-soft);overflow:hidden}
-    .usage-group-head{display:flex;align-items:center;gap:8px;padding:10px 11px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.015)}
-    .usage-group-head strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
-    .usage-group-head .badge{flex:0 0 auto}
-    .usage-accounts{display:flex;flex-direction:column}
-    .usage-account{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 11px;border-top:1px solid rgba(155,200,188,.08)}
-    .usage-account:first-child{border-top:0}
+    .usage-source{padding:9px 10px;border:1px solid rgba(45,212,191,.22);border-radius:12px;background:rgba(45,212,191,.055);font-size:11.5px;color:var(--txt-dim);line-height:1.5}
+    .usage-list{display:flex;flex-direction:column;gap:10px;max-height:none;overflow:visible;padding-right:0}
+    .usage-group{border:1px solid var(--line);border-radius:14px;background:var(--bg-soft);overflow:hidden}
+    .usage-group-head{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:11px 11px 10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(52,211,153,.055),rgba(255,255,255,.01))}
+    .usage-group-title{display:flex;align-items:flex-start;gap:8px;line-height:1.35}
+    .usage-group-title strong{flex:1;min-width:0;font-size:12.8px;font-weight:760;white-space:normal;word-break:break-word;color:var(--txt)}
+    .usage-group-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .usage-accounts{display:flex;flex-direction:column;gap:8px;padding:8px}
+    .usage-account{display:block;padding:10px;border:1px solid rgba(155,200,188,.1);border-radius:12px;background:rgba(2,8,12,.28)}
     .usage-account:hover{background:rgba(52,211,153,.045)}
-    .usage-account strong{display:block;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .usage-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:3px;font-size:10.8px;color:var(--txt-faint)}
-    .usage-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-    .usage-match{font-size:10.5px;color:var(--txt-faint);max-width:118px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+    .usage-account-head{display:flex;align-items:flex-start;gap:8px}
+    .usage-account-head strong{flex:1;min-width:0;display:block;font-size:12.7px;line-height:1.35;white-space:normal;word-break:break-word;color:var(--txt)}
+    .usage-account-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px}
+    .usage-kv{display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px;margin-top:7px;font-size:11px;line-height:1.38}
+    .usage-kv span{color:var(--txt-faint)}
+    .usage-kv b{font-weight:560;color:var(--txt-dim);word-break:break-all}
+    .usage-match{display:inline-flex;align-items:center;max-width:100%;font-size:10.5px;color:var(--txt-faint);white-space:normal;text-align:left}
     .usage-empty{padding:18px 10px;text-align:center;border:1px dashed var(--line-2);border-radius:13px;background:var(--bg-soft);color:var(--txt-faint);font-size:12.5px;line-height:1.6}
     .usage-loading{position:relative;overflow:hidden}
     .usage-loading::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:usageShimmer 1.2s infinite}
@@ -387,8 +392,8 @@ const APP_HTML = String.raw`<!doctype html>
           <div id="selectedInfo" class="selected-info"><div class="empty">请选择一个上游分组</div></div>
         </div>
         <div class="card">
-          <h2>本地使用情况 <span class="tag">按当前上游</span><span class="right"><button id="refreshLocalUsageBtn" class="btn small ghost" title="重新统计当前上游在本地 sub2api 的使用情况">刷新</button></span></h2>
-          <div id="localUsageBox" class="usage-panel"><div class="usage-empty">选择上游后自动统计本地账号使用情况</div></div>
+          <h2>本地 sub2api Key <span class="tag">按当前上游</span><span class="right"><button id="refreshLocalUsageBtn" class="btn small ghost" title="重新统计当前上游在本地 sub2api 的账号 / Key 使用情况">刷新</button></span></h2>
+          <div id="localUsageBox" class="usage-panel"><div class="usage-empty">选择上游后自动统计本地 sub2api 账号 / Key</div></div>
         </div>
         <div class="card">
           <h2>创建参数 <span class="tag">创建账号时使用</span></h2>
@@ -751,45 +756,61 @@ const APP_HTML = String.raw`<!doctype html>
     }
     function localUsageMatchLabel(a){
       var r=(a&&a.match&&a.match.reasons&&a.match.reasons[0])||"";
-      if(r==="extra") return "标记匹配";
+      if(r==="extra") return "监控标记";
       if(r==="base_url") return "Base URL";
-      if(r==="notes") return "备注匹配";
-      if(r==="name") return "名称匹配";
+      if(r==="notes") return "备注";
+      if(r==="name") return "账号名称";
       return "兼容匹配";
+    }
+    function localUsageAccountCard(a){
+      a=a||{};
+      var name=a.name||("账号 "+(a.id||"-"));
+      var id=a.id!=null&&a.id!==""?a.id:"-";
+      var status=a.status?statusBadge(a.status):'<span class="badge">状态 -</span>';
+      var key=a.has_api_key?'<span class="badge good" title="sub2api 本地账号内已保存上游 API Key，密钥值不会从接口返回">本地 API Key</span>':'<span class="badge warn" title="sub2api 未返回 API Key 存在状态">Key 未确认</span>';
+      var type=a.type?'<span class="badge">'+esc(a.type)+'</span>':'<span class="badge">类型 -</span>';
+      var rate=a.rate_multiplier!=null?'<span class="badge">账号倍率 ×'+esc(a.rate_multiplier)+'</span>':'';
+      var priority=a.priority?'<span class="badge">优先级 '+esc(a.priority)+'</span>':'';
+      var cc=Number(a.current_concurrency||0); var conc=Number(a.concurrency||0);
+      var concText=conc?("并发 "+cc+"/"+conc):(cc?("并发 "+cc):"并发 0");
+      var base=a.base_url||"";
+      var notes=a.notes||"";
+      var reasons=(a.match&&a.match.reasons||[]).join(" / ");
+      return '<div class="usage-account">'
+        + '<div class="usage-account-head"><strong title="'+escAttr(name)+'">'+esc(name)+'</strong>'+key+'</div>'
+        + '<div class="usage-account-badges"><span class="badge">本地账号 #'+esc(id)+'</span>'+platformBadge(a.platform||"-")+type+status+rate+priority+'<span class="badge">'+esc(concText)+'</span></div>'
+        + '<div class="usage-kv"><span>Base URL</span><b title="'+escAttr(base||"sub2api 未返回 base_url")+'">'+esc(base||"未返回")+'</b></div>'
+        + (notes?'<div class="usage-kv"><span>备注</span><b title="'+escAttr(notes)+'">'+esc(notes)+'</b></div>':'')
+        + '<div class="usage-kv"><span>识别方式</span><b><span class="usage-match" title="'+escAttr(reasons)+'">'+esc(localUsageMatchLabel(a))+'</span></b></div>'
+        + '</div>';
     }
     function renderLocalUsage(){
       var host=byId("localUsageBox"); if(!host) return;
       var u=currentUpstream();
-      if(!u){ host.innerHTML='<div class="usage-empty">保存上游后会显示本地使用情况</div>'; return; }
+      if(!u){ host.innerHTML='<div class="usage-empty">保存上游后会显示本地 sub2api 账号 / Key</div>'; return; }
       if(state.localUsageLoading&&state.localUsageUpstreamId===u.id){
-        host.innerHTML='<div class="usage-top usage-loading"><div class="usage-stat"><b>…</b><span>API Key</span></div><div class="usage-stat"><b>…</b><span>本地分组</span></div><div class="usage-stat"><b>…</b><span>标记匹配</span></div></div><div class="usage-empty usage-loading">正在统计 '+esc(displayHost(u.url))+' 的本地账号使用情况…</div>';
+        host.innerHTML='<div class="usage-top usage-loading"><div class="usage-stat"><b>…</b><span>本地 Key</span></div><div class="usage-stat"><b>…</b><span>本地分组</span></div><div class="usage-stat"><b>…</b><span>监控标记</span></div></div><div class="usage-empty usage-loading">正在统计 '+esc(displayHost(u.url))+' 在本地 sub2api 中的账号 / Key…</div>';
         return;
       }
       var data=state.localUsage;
-      if(!data||data.upstreamId!==u.id){ host.innerHTML='<div class="usage-empty">点击刷新或切换上游后自动统计本地使用情况</div>'; return; }
+      if(!data||data.upstreamId!==u.id){ host.innerHTML='<div class="usage-empty">点击刷新或切换上游后自动统计本地 sub2api 账号 / Key</div>'; return; }
       if(data.error){ host.innerHTML='<div class="usage-empty"><strong>统计失败</strong><br>'+esc(data.error)+'</div>'; return; }
       var groups=data.groups||[], accounts=data.accounts||[], summary=data.summary||{};
       var exact=Number(summary.marked||0), legacy=Number(summary.legacy||0);
-      var top='<div class="usage-top"><div class="usage-stat"><b>'+esc(summary.account_count||0)+'</b><span>API Key</span></div><div class="usage-stat"><b>'+esc(summary.group_count||0)+'</b><span>本地分组</span></div><div class="usage-stat"><b>'+esc(exact)+'</b><span>标记匹配</span></div></div>';
-      var note='<div class="usage-note"><strong>'+esc(displayHost(u.url))+'</strong> · '+(legacy?('有 '+legacy+' 个旧账号通过 base_url / 备注 / 名称识别。'):'新导入账号会写入稳定标记，统计更准确。')+'</div>';
-      if(!accounts.length){ host.innerHTML=top+note+'<div class="usage-empty">当前上游还没有匹配到本地账号。创建并导入后，这里会按本地分组显示数量和明细。</div>'; return; }
+      var top='<div class="usage-top"><div class="usage-stat"><b>'+esc(summary.account_count||0)+'</b><span>本地 Key</span></div><div class="usage-stat"><b>'+esc(summary.group_count||0)+'</b><span>本地分组</span></div><div class="usage-stat"><b>'+esc(exact)+'</b><span>监控标记</span></div></div>';
+      var source='<div class="usage-source"><strong>数据来源：本地 sub2api</strong> · 读取 /api/v1/admin/accounts 后按当前上游匹配；这里列的是 sub2api 内保存的账号 / Key，不是上游后台 Key 列表。</div>';
+      var note='<div class="usage-note"><strong>'+esc(displayHost(u.url))+'</strong> · '+(legacy?('有 '+legacy+' 个旧账号通过 Base URL / 备注 / 账号名称识别。'):'新导入账号会写入监控标记，统计更准确。')+'</div>';
+      if(!accounts.length){ host.innerHTML=top+source+note+'<div class="usage-empty">当前上游还没有匹配到本地 sub2api 账号 / Key。创建并导入后，这里会按每个本地分组列出数量和明细。</div>'; return; }
       var html=groups.map(function(g){
         var accs=g.accounts||[];
         var title=esc(g.name||('分组 '+g.id));
+        var groupId=(g.id!=null&&String(g.id)!=="__ungrouped")?'<span class="faint">本地分组 #'+esc(g.id)+'</span>':'<span class="faint">未分组</span>';
         var platform=g.platform?platformBadge(g.platform):'';
-        var rate=g.rate_multiplier!=null?'<span class="badge">×'+esc(g.rate_multiplier)+'</span>':'';
-        var body=accs.map(function(a){
-          var status=a.status?statusBadge(a.status):'<span class="badge">-</span>';
-          var key=a.has_api_key?'<span class="badge good">API Key</span>':'<span class="badge">Key ?</span>';
-          var rateHtml=a.rate_multiplier!=null?'<span class="badge">×'+esc(a.rate_multiplier)+'</span>':'';
-          var cc=Number(a.current_concurrency||0); var conc=Number(a.concurrency||0);
-          var concText=conc?('<span class="faint">并发 '+cc+'/'+conc+'</span>'):(cc?'<span class="faint">并发 '+cc+'</span>':'');
-          var notes=a.notes?'<span class="faint" title="'+escAttr(a.notes)+'">备注</span>':'';
-          return '<div class="usage-account"><div><strong title="'+escAttr(a.name||'')+'">'+esc(a.name||('账号 '+a.id))+'</strong><div class="usage-meta"><span class="faint">#'+esc(a.id)+'</span>'+platformBadge(a.platform||'-')+'<span class="badge">'+esc(a.type||'-')+'</span>'+status+rateHtml+concText+notes+'</div></div><div class="usage-side">'+key+'<span class="usage-match" title="'+escAttr((a.match&&a.match.reasons||[]).join(' / '))+'">'+esc(localUsageMatchLabel(a))+'</span></div></div>';
-        }).join('');
-        return '<div class="usage-group"><div class="usage-group-head"><strong title="'+escAttr(g.name||'')+'">'+title+'</strong>'+platform+rate+'<span class="badge good">'+accs.length+' 个</span></div><div class="usage-accounts">'+body+'</div></div>';
+        var rate=g.rate_multiplier!=null&&g.rate_multiplier!==""?'<span class="badge">分组倍率 ×'+esc(g.rate_multiplier)+'</span>':'';
+        var body=accs.map(localUsageAccountCard).join('');
+        return '<div class="usage-group"><div class="usage-group-head"><div class="usage-group-title"><strong title="'+escAttr(g.name||'')+'">'+title+'</strong><span class="badge good">'+accs.length+' 个本地 Key</span></div><div class="usage-group-meta">'+groupId+platform+rate+'</div></div><div class="usage-accounts">'+body+'</div></div>';
       }).join('');
-      host.innerHTML=top+note+'<div class="usage-list">'+html+'</div>';
+      host.innerHTML=top+source+note+'<div class="usage-list">'+html+'</div>';
     }
 
 
