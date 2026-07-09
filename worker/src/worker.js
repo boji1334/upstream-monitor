@@ -186,6 +186,8 @@ const APP_HTML = String.raw`<!doctype html>
     tbody td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
     tbody tr:hover{background:var(--bg-soft)}
     tbody tr.selected{background:rgba(52,211,153,.08);box-shadow:inset 3px 0 0 var(--acc)}
+    tbody tr.group-focus{background:rgba(45,212,191,.16) !important;box-shadow:inset 4px 0 0 var(--acc-2),0 0 0 1px rgba(45,212,191,.34),0 0 28px -18px var(--acc-2);animation:groupFlash 1.6s ease}
+    @keyframes groupFlash{0%{background:rgba(45,212,191,.34);box-shadow:inset 4px 0 0 var(--acc-2),0 0 0 1px rgba(45,212,191,.72),0 0 34px -12px var(--acc-2)}100%{background:rgba(45,212,191,.16);box-shadow:inset 4px 0 0 var(--acc-2),0 0 0 1px rgba(45,212,191,.34),0 0 28px -18px var(--acc-2)}}
     tbody tr.group-used{opacity:.62}
     .group-name strong{font-weight:680}
     .group-meta{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
@@ -239,6 +241,9 @@ const APP_HTML = String.raw`<!doctype html>
     .usage-group.collapsed .usage-accounts{display:none}
     .usage-account{display:block;padding:10px;border:1px solid rgba(155,200,188,.1);border-radius:12px;background:rgba(2,8,12,.28)}
     .usage-account:hover{background:rgba(52,211,153,.045)}
+    .usage-account.can-focus{cursor:pointer}
+    .usage-account.can-focus:hover{border-color:rgba(45,212,191,.42);background:rgba(45,212,191,.06)}
+    .usage-account.active-key{border-color:rgba(45,212,191,.52);background:rgba(45,212,191,.08);box-shadow:0 0 0 1px rgba(45,212,191,.12)}
     .usage-account-head{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
     .usage-account-head strong{flex:1 1 118px;min-width:0;display:block;font-size:12.7px;line-height:1.35;white-space:normal;word-break:break-word;color:var(--txt)}
     .usage-account-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px}
@@ -461,6 +466,7 @@ const APP_HTML = String.raw`<!doctype html>
     var state = {
       config: null, selectedUpstreamId: "", selectedGroupId: "",
       localGroups: [], localGroupIds: [], localUsage: null, localUsageCollapsed: {}, localUsageLoading: false, localUsageUpstreamId: "", localUsageSeq: 0, rateSortDir: "asc",
+      focusGroupId: "", focusLocalKeyId: "", focusTimer: null,
       busy: false, autoTimer: null, autoRemaining: 0, historyOpen: false
     };
 
@@ -646,7 +652,7 @@ const APP_HTML = String.raw`<!doctype html>
     }
     function selectUpstream(id){
       if(!id||id===state.selectedUpstreamId) return;
-      state.selectedUpstreamId=id; state.selectedGroupId=""; state.localUsage=null; state.localUsageCollapsed={}; state.localUsageUpstreamId="";
+      state.selectedUpstreamId=id; state.selectedGroupId=""; state.focusGroupId=""; state.focusLocalKeyId=""; state.localUsage=null; state.localUsageCollapsed={}; state.localUsageUpstreamId="";
       renderAll(); loadLocalUsage(false);
     }
 
@@ -724,12 +730,12 @@ const APP_HTML = String.raw`<!doctype html>
       if(!groups.length){ host.innerHTML='<div class="empty">暂无可见分组</div>'; return; }
       var cm=changeMap(u); var arrow=state.rateSortDir==="asc"?"↑":"↓";
       host.innerHTML='<table><thead><tr><th>选择</th><th>分组</th><th><button class="sort-head" data-sort-rate>倍率 <span class="sort-arrow">'+arrow+'</span></button></th><th>平台</th><th>状态</th><th>类型</th><th>变化</th><th>操作</th></tr></thead><tbody>'+groups.map(function(g){
-        var id=String(g.id); var hidden=hs.has(id); var used=usedSet.has(id); var selected=id===String(state.selectedGroupId);
+        var id=String(g.id); var hidden=hs.has(id); var used=usedSet.has(id); var selected=id===String(state.selectedGroupId); var focused=id===String(state.focusGroupId||"");
         var ch=cm[id]||""; var chBadge=ch?'<span class="badge '+(ch==="新增"?"good":ch==="倍率变化"?"warn":"info")+'">'+ch+'</span>':'<span class="badge">稳定</span>';
-        var rowClass="platform-"+platformKind(g.platform)+(used?" group-used":"")+(selected?" selected":"");
+        var rowClass="platform-"+platformKind(g.platform)+(used?" group-used":"")+(selected?" selected":"")+(focused?" group-focus":"");
         var note=g.description?'<span class="group-note" title="'+escAttr(g.description)+'">'+esc(g.description)+'</span>':"";
         var usedBtn=used?'<button class="btn small ghost" data-used-clear="'+esc(id)+'">取消</button>':'<button class="btn small" data-used-mark="'+esc(id)+'">标记</button>';
-        return '<tr class="'+rowClass+'"><td><div class="select-actions"><button class="btn small" data-select="'+esc(id)+'">选择</button>'+usedBtn+'</div></td><td><div class="group-name"><strong>'+esc(g.name)+'</strong></div><div class="group-meta"><span class="faint">ID '+esc(id)+'</span>'+note+(used?'<span class="badge used">已用</span>':"")+(hidden?'<span class="badge danger">已隐藏</span>':"")+'</div></td><td>'+rateHtml(g)+'</td><td>'+platformBadge(g.platform)+'</td><td>'+statusBadge(g.status)+'</td><td>'+esc(g.subscription_type||"-")+'</td><td>'+chBadge+'</td><td>'+(hidden?'<button class="btn small" data-restore="'+esc(id)+'">恢复</button>':'<button class="btn small warn" data-hide="'+esc(id)+'">删除记录</button>')+'</td></tr>';
+        return '<tr class="'+rowClass+'" data-group-row="'+escAttr(id)+'"><td><div class="select-actions"><button class="btn small" data-select="'+esc(id)+'">选择</button>'+usedBtn+'</div></td><td><div class="group-name"><strong>'+esc(g.name)+'</strong></div><div class="group-meta"><span class="faint">ID '+esc(id)+'</span>'+note+(used?'<span class="badge used">已用</span>':"")+(hidden?'<span class="badge danger">已隐藏</span>':"")+'</div></td><td>'+rateHtml(g)+'</td><td>'+platformBadge(g.platform)+'</td><td>'+statusBadge(g.status)+'</td><td>'+esc(g.subscription_type||"-")+'</td><td>'+chBadge+'</td><td>'+(hidden?'<button class="btn small" data-restore="'+esc(id)+'">恢复</button>':'<button class="btn small warn" data-hide="'+esc(id)+'">删除记录</button>')+'</td></tr>';
       }).join("")+'</tbody></table>';
       host.querySelector("[data-sort-rate]").addEventListener("click",function(){ state.rateSortDir=state.rateSortDir==="asc"?"desc":"asc"; renderTable(); });
       host.querySelectorAll("[data-select]").forEach(function(b){ b.addEventListener("click",function(){ state.selectedGroupId=b.getAttribute("data-select"); renderAll(); }); });
@@ -801,6 +807,10 @@ const APP_HTML = String.raw`<!doctype html>
       a=a||{};
       var name=a.name||("账号 "+(a.id||"-"));
       var id=a.id!=null&&a.id!==""?a.id:"-";
+      var upstreamGroupId=String(a.upstream_group_id||"").trim();
+      var canFocus=!!upstreamGroupId&&upstreamGroupId.indexOf("/")===-1;
+      var activeKey=String(state.focusLocalKeyId||"")===String(id);
+      var focusAttrs=canFocus?' data-focus-upstream-group="'+escAttr(upstreamGroupId)+'" data-local-key-id="'+escAttr(id)+'" role="button" tabindex="0" title="点击定位中间上游分组 #'+escAttr(upstreamGroupId)+'"':'';
       var status=a.status?statusBadge(a.status):'<span class="badge">状态 -</span>';
       var key=a.has_api_key?'<span class="badge good" title="sub2api 本地账号内已保存上游 API Key，密钥值不会从接口返回">本地 API Key</span>':'<span class="badge warn" title="sub2api 未返回 API Key 存在状态">Key 未确认</span>';
       var type=a.type?'<span class="badge">'+esc(a.type)+'</span>':'<span class="badge">类型 -</span>';
@@ -811,7 +821,7 @@ const APP_HTML = String.raw`<!doctype html>
       var base=a.base_url||"";
       var notes=a.notes||"";
       var reasons=(a.match&&a.match.reasons||[]).join(" / ");
-      return '<div class="usage-account">'
+      return '<div class="usage-account'+(canFocus?' can-focus':'')+(activeKey?' active-key':'')+'"'+focusAttrs+'>'
         + '<div class="usage-account-head"><strong title="'+escAttr(name)+'">'+esc(name)+'</strong>'+upstreamGroupBadge(a)+key+'</div>'
         + '<div class="usage-account-badges"><span class="badge">本地账号 #'+esc(id)+'</span>'+platformBadge(a.platform||"-")+type+status+rate+priority+'<span class="badge">'+esc(concText)+'</span></div>'
         + upstreamGroupDetail(a)
@@ -821,6 +831,38 @@ const APP_HTML = String.raw`<!doctype html>
         + '</div>';
     }
     function localUsageGroupKey(g,idx){ return String((g&&g.id!=null)?g.id:("idx-"+idx)); }
+    function findGroupRow(groupId){
+      var host=byId("tableHost"); if(!host) return null;
+      var rows=host.querySelectorAll("[data-group-row]");
+      for(var i=0;i<rows.length;i++){ if(rows[i].getAttribute("data-group-row")===String(groupId)) return rows[i]; }
+      return null;
+    }
+    function scrollFocusedGroupIntoView(groupId, retried){
+      setTimeout(function(){
+        var row=findGroupRow(groupId);
+        if(!row&&!retried){
+          var showHidden=byId("showHidden");
+          if(showHidden&&!showHidden.checked){ showHidden.checked=true; renderTable(); scrollFocusedGroupIntoView(groupId,true); return; }
+        }
+        if(row) row.scrollIntoView({block:"center",inline:"nearest",behavior:"smooth"});
+        else addLog("定位","没有在当前上游快照中找到分组 #"+groupId);
+      },40);
+    }
+    function focusUpstreamGroupFromLocalKey(groupId,keyId){
+      groupId=String(groupId||"").trim();
+      if(!groupId||groupId.indexOf("/")!==-1){ addLog("定位","这个本地 Key 暂时不能精确定位到单个上游分组"); return; }
+      if(state.focusTimer) clearTimeout(state.focusTimer);
+      state.selectedGroupId=groupId;
+      state.focusGroupId=groupId;
+      state.focusLocalKeyId=String(keyId||"");
+      renderAll();
+      scrollFocusedGroupIntoView(groupId,false);
+      state.focusTimer=setTimeout(function(){
+        state.focusGroupId="";
+        state.focusTimer=null;
+        renderTable();
+      },2200);
+    }
     function bindLocalUsageControls(host,groups){
       host.querySelectorAll("[data-usage-toggle]").forEach(function(btn){
         btn.addEventListener("click",function(){
@@ -838,6 +880,11 @@ const APP_HTML = String.raw`<!doctype html>
       });
       var expand=host.querySelector("[data-usage-expand-all]");
       if(expand) expand.addEventListener("click",function(){ state.localUsageCollapsed={}; renderLocalUsage(); });
+      host.querySelectorAll("[data-focus-upstream-group]").forEach(function(card){
+        var run=function(){ focusUpstreamGroupFromLocalKey(card.getAttribute("data-focus-upstream-group"),card.getAttribute("data-local-key-id")); };
+        card.addEventListener("click",function(e){ if(e.target.closest&&e.target.closest("button,a")) return; run(); });
+        card.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); run(); } });
+      });
     }
     function renderLocalUsage(){
       var host=byId("localUsageBox"); if(!host) return;
@@ -947,7 +994,7 @@ const APP_HTML = String.raw`<!doctype html>
       if(p.kind==="newapi"&&!p.userId){ addLog("校验","NewAPI 上游需要填写 user_id"); return; }
       addLog("保存","写入上游配置: "+(p.name||p.url)+" ("+(p.kind==="newapi"?"NewAPI":"sub2api")+")");
       var r=await api("/api/upstreams",{method:"POST",body:p}); state.config=r.config;
-      state.selectedUpstreamId=state.config.upstreams[state.config.upstreams.length-1].id; state.localUsage=null; state.localUsageCollapsed={}; state.localUsageUpstreamId="";
+      state.selectedUpstreamId=state.config.upstreams[state.config.upstreams.length-1].id; state.focusGroupId=""; state.focusLocalKeyId=""; state.localUsage=null; state.localUsageCollapsed={}; state.localUsageUpstreamId="";
       byId("upstreamName").value=""; byId("upstreamUrl").value=""; byId("upstreamToken").value=""; if(byId("upstreamRefreshToken")) byId("upstreamRefreshToken").value=""; if(byId("upstreamUserId")) byId("upstreamUserId").value="";
       renderAll(); await refreshAll();
     }
